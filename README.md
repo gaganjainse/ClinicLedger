@@ -5,7 +5,7 @@ An offline-first, voice-assisted clinic ledger and patient memory database desig
 ---
 
 ## About
-**Clinic Ledger** is an offline-first, voice-assisted medical ledger designed for rural clinic environments where voice-first interaction significantly improves productivity for practitioners. I made this on **Google AI Studio** to serve as a robust, ironclad tool for managing patient histories and financial records completely offline.
+**Clinic Ledger** is an offline-first, voice-assisted medical ledger designed for rural clinic environments where voice-first interaction significantly improves productivity for practitioners. It serves as a robust, ironclad tool for managing patient histories and financial records completely offline.
 
 ---
 
