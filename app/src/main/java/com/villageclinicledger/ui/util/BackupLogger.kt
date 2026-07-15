@@ -1,6 +1,7 @@
 package com.villageclinicledger.ui.util
 
 import android.content.Context
+import androidx.core.content.edit
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -18,7 +19,7 @@ object BackupLogger {
         currentLogs.add(0, logEntry) // Add to top
         val trimmed = currentLogs.take(50) // Keep last 50
         
-        prefs.edit().putStringSet(KEY_LOGS, trimmed.toSet()).apply()
+        prefs.edit { putStringSet(KEY_LOGS, trimmed.toSet()) }
     }
 
     fun getLogs(context: Context): List<String> {

@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.core.graphics.toColorInt
 import java.util.Date
 
 /**
@@ -24,7 +25,7 @@ import java.util.Date
             entity = Patient::class,
             parentColumns = ["id"],
             childColumns = ["patient_id"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         )
     ],
     indices = [Index("patient_id")]
@@ -60,13 +61,13 @@ data class Transaction(
     /** Background color associated with the transaction type for visual distinction */
     val typeColor: Int
         get() = when (type) {
-            "medicine" -> android.graphics.Color.parseColor("#FFCDD2")
-            "payment" -> android.graphics.Color.parseColor("#C8E6C9")
-            "adjustment" -> android.graphics.Color.parseColor("#BBDEFB")
-            else -> android.graphics.Color.parseColor("#EEEEEE")
+            "medicine" -> "#FFCDD2".toColorInt()
+            "payment" -> "#C8E6C9".toColorInt()
+            "adjustment" -> "#BBDEFB".toColorInt()
+            else -> "#EEEEEE".toColorInt()
         }
 
     /** True if this transaction increases the patient's balance (medicine or adjustment) */
     val isDebit: Boolean
-        get() = type == "medicine" || type == "adjustment"
+        get() = (type == "medicine") || (type == "adjustment")
 }

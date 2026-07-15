@@ -5,12 +5,13 @@ import java.util.*
 object DateTimeUtils {
 
     fun getStartOfDay(date: Date = Date()): Date {
-        val cal = Calendar.getInstance()
-        cal.time = date
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
+        val cal = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
         return cal.time
     }
 
@@ -18,7 +19,7 @@ object DateTimeUtils {
         val cal = Calendar.getInstance()
         cal.time = date
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-        val daysSinceMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7
+        val daysSinceMonday = ((dayOfWeek - Calendar.MONDAY) + 7) % 7
         cal.add(Calendar.DAY_OF_YEAR, -daysSinceMonday)
         return getStartOfDay(cal.time)
     }

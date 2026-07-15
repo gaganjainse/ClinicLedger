@@ -1,7 +1,6 @@
 package com.villageclinicledger.ui.compose
 
 import android.widget.Toast
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,7 +33,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun VillageManagementScreen(
     onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit
+    onNavigateHome: () -> Unit,
 ) {
     VillageManagementContent()
 }
@@ -58,7 +57,7 @@ fun VillageManagementContent() {
     var editingFamily by remember { mutableStateOf<FamilyGroup?>(null) }
     var villageToDelete by remember { mutableStateOf<Village?>(null) }
     var familyToDelete by remember { mutableStateOf<FamilyGroup?>(null) }
-    var showAddFamilyDialog by remember { mutableStateOf(false) }
+    var showAddFamilyDialog by remember { mutableStateOf(value = false) }
 
     val addedSuccessMsg = stringResource(R.string.added_successfully_toast)
     val villageDeletedMsg = stringResource(R.string.village_deleted_toast)
@@ -69,7 +68,7 @@ fun VillageManagementContent() {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        ScrollableTabRow(
+        PrimaryScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.background,
             edgePadding = 16.dp
@@ -307,7 +306,7 @@ fun VillageManagementContent() {
                             editingFamily = null
                         }
                     },
-                    enabled = tempName.isNotBlank() && selectedVillageForFamily != null
+                    enabled = tempName.isNotBlank() && (selectedVillageForFamily != null)
                 ) {
                     Text(stringResource(R.string.save))
                 }
@@ -404,7 +403,7 @@ fun VillageManagementContent() {
                             showAddFamilyDialog = false
                         }
                     },
-                    enabled = tempName.isNotBlank() && selectedVillageForFamily != null
+                    enabled = tempName.isNotBlank() && (selectedVillageForFamily != null)
                 ) {
                     Text(stringResource(R.string.add))
                 }

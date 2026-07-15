@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,8 +48,7 @@ fun PatientDetailScreen(
     patientId: Long,
     viewModel: PatientDetailViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit,
-    onNavigateToPatientDetail: (Long) -> Unit
+    onNavigateToPatientDetail: (Long) -> Unit,
 ) {
     val isHindi = LocalIsHindi.current
     val context = LocalContext.current
@@ -75,15 +73,15 @@ fun PatientDetailScreen(
     val familyGroup by viewModel.familyGroup.observeAsState(null)
     val familyMembers by viewModel.familyMembers.observeAsState(emptyList())
 
-    var showEditPatientDialog by remember { mutableStateOf(false) }
-    var showAddAliasDialog by remember { mutableStateOf(false) }
-    var showLinkFamilyDialog by remember { mutableStateOf(false) }
+    var showEditPatientDialog by remember { mutableStateOf(value = false) }
+    var showAddAliasDialog by remember { mutableStateOf(value = false) }
+    var showLinkFamilyDialog by remember { mutableStateOf(value = false) }
     var showAddTransactionDialog by remember { mutableStateOf<String?>(null) } 
-    var showFamilyTreeDialog by remember { mutableStateOf(false) }
+    var showFamilyTreeDialog by remember { mutableStateOf(value = false) }
 
     val profileUpdatedMsg = stringResource(R.string.profile_updated_toast)
 
-    if (showFamilyTreeDialog && familyGroup != null) {
+    if (showFamilyTreeDialog && (familyGroup != null)) {
         FamilyTreeDialog(
             familyName = LocaleManager.getLocalizedText(familyGroup!!.name),
             members = familyMembers,
@@ -144,7 +142,6 @@ fun PatientDetailScreen(
                     if (familyGroup != null) {
                         item {
                             FamilyGroupSection(
-                                familyGroup = familyGroup!!,
                                 members = familyMembers.filter { it.id != currPatient.id },
                                 isHindi = isHindi,
                                 onNavigateToMember = onNavigateToPatientDetail
@@ -261,9 +258,13 @@ fun PatientDetailHeader(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                val initials = patient.name.split(" ").filter { it.isNotEmpty() }.take(2).joinToString("") { it.take(1).uppercase() }
+                val initials = patient.name.split(" ")
+                    .asSequence()
+                    .filter { it.isNotEmpty() }
+                    .take(2)
+                    .joinToString("") { it.take(1).uppercase() }
                 Text(
-                    text = if (initials.isNotBlank()) initials else "?",
+                    text = initials.ifBlank { "?" },
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -294,10 +295,10 @@ fun PatientDetailHeader(
                 )
             }
 
-            if (!patient.phone.isNullOrBlank()) {
+            if (patient.phone.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = patient.phone!!,
+                    text = patient.phone,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -389,7 +390,6 @@ fun BalanceCard(balance: Double) {
 
 @Composable
 fun FamilyGroupSection(
-    familyGroup: FamilyGroup,
     members: List<Patient>,
     isHindi: Boolean,
     onNavigateToMember: (Long) -> Unit
@@ -657,7 +657,7 @@ fun LinkFamilyDialog(
     val isHindi = LocalIsHindi.current
     var showCreateNew by remember { mutableStateOf(false) }
     var newFamilyName by remember { mutableStateOf("") }
-    var selectedVillageId by remember { mutableStateOf(villages.firstOrNull()?.id ?: 0L) }
+    var selectedVillageId by remember { mutableLongStateOf(villages.firstOrNull()?.id ?: 0L) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -757,10 +757,12 @@ fun AddTransactionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val amt = amount.toDoubleOrNull() ?: 0.0
-                if (amt > 0 || type == "adjustment") onConfirm(amt, notes, Date())
-            }) {
+            Button(
+                onClick = {
+                    val amt = amount.toDoubleOrNull() ?: 0.0
+                    if (amt > 0 || type == "adjustment") onConfirm(amt, notes, Date())
+                },
+            ) {
                 Text(if (isHindi) "पुष्टि करें" else "Confirm")
             }
         },

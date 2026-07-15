@@ -115,11 +115,6 @@ class MainActivity : AppCompatActivity() {
                                     onNavigateBack = {
                                         navController.popBackStack()
                                     },
-                                    onNavigateHome = {
-                                        navController.navigate(Screen.Search.route) {
-                                            popUpTo(Screen.Search.route) { inclusive = true }
-                                        }
-                                    },
                                     onPatientAdded = {
                                         navController.popBackStack()
                                     }
@@ -143,11 +138,6 @@ class MainActivity : AppCompatActivity() {
                                     viewModel = detailViewModel,
                                     onNavigateBack = {
                                         navController.popBackStack()
-                                    },
-                                    onNavigateHome = {
-                                        navController.navigate(Screen.Search.route) {
-                                            popUpTo(Screen.Search.route) { inclusive = true }
-                                        }
                                     },
                                     onNavigateToPatientDetail = { id ->
                                         navController.navigate(Screen.PatientDetail.createRoute(id))

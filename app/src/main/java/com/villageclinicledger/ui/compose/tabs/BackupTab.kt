@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -43,10 +42,10 @@ fun BackupTab() {
     val database = remember { VillageClinicLedgerDatabase.getDatabase(context) }
     val gson = remember { GsonBuilder().setPrettyPrinting().create() }
 
-    var autoBackupEnabled by remember { mutableStateOf(false) }
+    var autoBackupEnabled by remember { mutableStateOf(value = false) }
     var lastBackupTime by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf("") }
-    var operationProgress by remember { mutableStateOf(false) }
+    var operationProgress by remember { mutableStateOf(value = false) }
 
     val errorOpenFileMsg = stringResource(R.string.could_not_open_file)
     val importSuccessMsg = stringResource(R.string.import_successful)
@@ -162,7 +161,7 @@ fun BackupTab() {
     }
 
     val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         if (uri != null) {
             pendingRestoreUri = uri

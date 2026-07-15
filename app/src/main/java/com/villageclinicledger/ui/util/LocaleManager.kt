@@ -2,6 +2,7 @@ package com.villageclinicledger.ui.util
 
 import android.content.Context
 import android.content.res.Configuration
+import androidx.core.content.edit
 import androidx.compose.runtime.staticCompositionLocalOf
 import java.util.Locale
 
@@ -21,12 +22,12 @@ object LocaleManager {
 
     fun saveLocale(context: Context, lang: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_LANG, lang).apply()
+        prefs.edit { putString(KEY_LANG, lang) }
     }
 
     fun applyLocale(context: Context): Context {
         val lang = getSavedLocale(context)
-        val locale = Locale(lang)
+        val locale = Locale.forLanguageTag(lang)
         Locale.setDefault(locale)
 
         val config = Configuration(context.resources.configuration)
@@ -36,10 +37,11 @@ object LocaleManager {
 
     fun applyLocaleLegacy(context: Context) {
         val lang = getSavedLocale(context)
-        val locale = Locale(lang)
+        val locale = Locale.forLanguageTag(lang)
         Locale.setDefault(locale)
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
+        @Suppress("DEPRECATION")
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
 
@@ -65,6 +67,7 @@ object LocaleManager {
         val localized = getLocalizedText(text)
         if (localized.any { it.isLetter() }) {
             return localized.split(" ")
+                .asSequence()
                 .filter { it.isNotEmpty() }
                 .joinToString(" ") { word ->
                     word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
@@ -86,7 +89,7 @@ object LocaleManager {
      * Shows decimals only if they are non-zero.
      */
     fun formatAmount(amount: Double): String {
-        return if (amount % 1.0 == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)
+        return if ((amount % 1.0) == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)
     }
 
     /**
@@ -122,6 +125,6 @@ object LocaleManager {
      * Formats a date and time into a human-readable string.
      */
     fun formatDateTime(date: java.util.Date): String {
-        return java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.US).format(date)
+        return java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(date)
     }
 }

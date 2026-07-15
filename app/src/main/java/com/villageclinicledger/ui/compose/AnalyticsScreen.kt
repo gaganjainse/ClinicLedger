@@ -1,6 +1,5 @@
 package com.villageclinicledger.ui.compose
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,7 +35,7 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateHome: () -> Unit,
-    onNavigateToPatientDetail: (Long) -> Unit
+    onNavigateToPatientDetail: (Long) -> Unit,
 ) {
     AnalyticsContent(
         viewModel = viewModel,
@@ -67,12 +66,11 @@ fun AnalyticsContent(
             title = activePatientListTitle ?: "Details",
             patients = patients,
             isHindi = isHindi,
-            onDismiss = { activePatientList = null },
-            onNavigateToPatient = { patientId ->
-                activePatientList = null
-                onNavigateToPatientDetail(patientId)
-            }
-        )
+            onDismiss = { activePatientList = null }
+        ) { patientId ->
+            activePatientList = null
+            onNavigateToPatientDetail(patientId)
+        }
     }
 
     activeTransactionList?.let { transactions ->

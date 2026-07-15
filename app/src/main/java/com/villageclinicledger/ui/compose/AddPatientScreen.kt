@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -32,8 +31,7 @@ import kotlinx.coroutines.launch
 fun AddPatientScreen(
     viewModel: SearchViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit,
-    onPatientAdded: () -> Unit
+    onPatientAdded: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -47,14 +45,13 @@ fun AddPatientScreen(
     var selectedVillage by remember { mutableStateOf<Village?>(null) }
     var selectedFamilyGroup by remember { mutableStateOf<FamilyGroup?>(null) }
     var relationship by remember { mutableStateOf("Self") }
-    var relationshipExpanded by remember { mutableStateOf(false) }
+    var relationshipExpanded by remember { mutableStateOf(value = false) }
     var relationshipCustom by remember { mutableStateOf("") }
 
     var expanded by remember { mutableStateOf(false) }
-    var familyExpanded by remember { mutableStateOf(false) }
+    var familyExpanded by remember { mutableStateOf(value = false) }
 
     val patientAddedMsg = stringResource(R.string.patient_added)
-    val failedMsg = "Failed to add patient" // Fallback since resource is missing
 
     ClinicScaffold(
         title = stringResource(R.string.add_patient_title),
@@ -201,7 +198,7 @@ fun AddPatientScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val currentDisplayName = relationshipOptions.find { it.first == relationship }?.second 
-                    ?: (if (relationship.isNotBlank()) relationship else (if (isHindi) "स्वयं (Self)" else "Self"))
+                    ?: relationship.ifBlank { if (isHindi) "स्वयं (Self)" else "Self" }
 
                 OutlinedTextField(
                     readOnly = true,
@@ -244,7 +241,7 @@ fun AddPatientScreen(
 
             Button(
                 onClick = {
-                    if (name.isNotBlank() && selectedVillage != null) {
+                    if (name.isNotBlank() && (selectedVillage != null)) {
                         scope.launch {
                             try {
                                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -267,7 +264,7 @@ fun AddPatientScreen(
                         }
                     }
                 },
-                enabled = name.isNotBlank() && selectedVillage != null,
+                enabled = name.isNotBlank() && (selectedVillage != null),
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text(
