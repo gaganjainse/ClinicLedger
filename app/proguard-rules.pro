@@ -4,7 +4,7 @@
 -keep public class * extends java.lang.Exception
 
 # Keep Room entities
--keep class com.villageclinicledger.data.models.** { *; }
+-keep class com.clinicledger.data.models.** { *; }
 
 # Keep Gson serialization
 -keepattributes Signature

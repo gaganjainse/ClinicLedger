@@ -29,7 +29,7 @@ plugins {
     - JVM target 1.8: Required for broad compatibility with Android runtimes.
 */
 android {
-    namespace = 'com.villageclinicledger'
+    namespace = 'com.clinicledger'
     compileSdk = 37
 
     java {
@@ -39,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.villageclinicledger"
+        applicationId = "com.clinicledger"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

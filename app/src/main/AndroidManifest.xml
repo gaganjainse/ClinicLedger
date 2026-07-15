@@ -27,7 +27,7 @@
 
     <!--
         Application configuration:
-        - Uses a custom Application class (VillageClinicLedgerApp) for any
+        - Uses a custom Application class (ClinicLedgerApp) for any
           app-level initialisation (e.g. dependency injection, analytics).
         - allowBackup / fullBackupContent enabled so patient data is preserved
           during device-to-device migration.
@@ -39,13 +39,13 @@
           used while keeping compileSdk=34.
     -->
     <application
-        android:name=".VillageClinicLedgerApp"
+        android:name=".ClinicLedgerApp"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.VillageClinicLedger"
+        android:theme="@style/Theme.ClinicLedger"
         android:usesCleartextTraffic="false"
         tools:targetApi="34">
 
@@ -64,13 +64,13 @@
         </activity>
 
         <!--
-            VillageClinicLedgerProvider – Content provider used by the
+            ClinicLedgerProvider – Content provider used by the
             Room database layer (via the provider authority
-            "com.villageclinicledger.provider") for data sharing.
+            "com.clinicledger.provider") for data sharing.
         -->
         <provider
-            android:name=".data.local.VillageClinicLedgerProvider"
-            android:authorities="com.villageclinicledger.provider"
+            android:name=".data.local.ClinicLedgerProvider"
+            android:authorities="com.clinicledger.provider"
             android:exported="false" />
 
 
