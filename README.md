@@ -1,6 +1,11 @@
-# Village Clinic Ledger (ग्राम क्लिनिक लेजर)
+# Clinic Ledger (क्लिनिक लेजर)
 
-An offline-first, voice-assisted clinic ledger and patient memory database designed specifically for rural clinic doctors in India. This application serves as an ironclad financial and medical audit trail, allowing doctors to manage patient histories, balance dues, and families hands-free using natural language spoken commands.
+An offline-first, voice-assisted clinic ledger and patient memory database designed specifically for clinic doctors in India. This application serves as an ironclad financial and medical audit trail, allowing doctors to manage patient histories, balance dues, and families hands-free using natural language spoken commands.
+
+---
+
+## About
+It is a specialized medical ledger designed for low-connectivity environments where voice-first interaction significantly improves productivity for practitioners.
 
 ---
 
@@ -94,7 +99,7 @@ The app runs on a highly structured local SQLite database managed via Room, cons
 ## 📂 Project Package Structure
 
 ```
-app/src/main/java/com/villageclinicledger/
+app/src/main/java/com/clinicledger/
 │
 ├── data/
 │   ├── local/              # Room Database, DAOs (Patient, Village, Transaction, Alias, FamilyGroup)

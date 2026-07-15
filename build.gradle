@@ -1,5 +1,5 @@
 /*
-    Root-level (project-wide) build configuration for Village Clinic Ledger.
+    Root-level (project-wide) build configuration for Clinic Ledger.
 
     Plugin versions are declared here with `apply false` so they are available
     to all sub-projects but only applied in the modules that need them.

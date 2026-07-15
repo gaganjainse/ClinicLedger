@@ -1,4 +1,4 @@
-# Consolidate Duplicate Functions in Village Clinic Ledger
+# Consolidate Duplicate Functions in Clinic Ledger
 
 This plan outlines the steps to identify and remove redundant logic across the project, centralizing utilities for currency, dates, and bilingual string handling.
 

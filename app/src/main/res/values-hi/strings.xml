@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Hindi (hi) string resources for Village Clinic Ledger (Pure Hindi).
+    Hindi (hi) string resources for Clinic Ledger (Pure Hindi).
 -->
 <resources>
     <!-- App-level -->
-    <string name="app_name">ग्राम क्लिनिक लेजर</string>
+    <string name="app_name">क्लिनिक लेजर</string>
 
     <!-- Search & patient lookup -->
     <string name="search_hint">नाम, गाँव या फोन से खोजें</string>

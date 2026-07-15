@@ -1,5 +1,5 @@
 /*
-    Settings for Village Clinic Ledger – configures repository sources and
+    Settings for Clinic Ledger – configures repository sources and
     the set of included modules.
 
     Note: This file uses the Kotlin DSL (.kts) while the other Gradle files
@@ -27,5 +27,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Village Clinic Ledger (ग्राम क्लिनिक लेजर)"
+rootProject.name = "Clinic Ledger (क्लिनिक लेजर)"
 include(":app")

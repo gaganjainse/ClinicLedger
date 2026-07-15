@@ -13,7 +13,7 @@ import com.villageclinicledger.data.models.Village
 import com.villageclinicledger.data.converters.DateConverter
 
 /**
- * The Room database for the Village Clinic Ledger application.
+ * The Room database for the Clinic Ledger application.
  * Contains four entities: Patient, Village, Alias, and Transaction.
  * Uses [DateConverter] to persist java.util.Date as Long timestamps.
  *

@@ -1,6 +1,6 @@
 {
-  "name": "Village Clinic Ledger (ग्राम क्लिनिक लेजर)",
-  "description": "A ledger app for rural clinics to manage patient records, track dues and payments, use hands-free voice commands, and perform offline backup/restore.",
+  "name": "Clinic Ledger",
+  "description": "An offline-first, voice-assisted ledger app for rural clinics to manage patient records, track dues, and perform secure local backups. Built with Jetpack Compose and Room.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
