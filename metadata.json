@@ -2,5 +2,15 @@
   "name": "Clinic Ledger",
   "description": "An offline-first, voice-assisted ledger app for rural clinics to manage patient records, track dues, and perform secure local backups. Built with Jetpack Compose and Room.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [],
+  "topics": [
+    "android",
+    "kotlin",
+    "jetpack-compose",
+    "room-database",
+    "offline-first",
+    "voice-assistant",
+    "medical-ledger",
+    "hindi"
+  ]
 }
