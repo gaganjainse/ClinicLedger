@@ -1,6 +1,5 @@
 package com.clinicledger.ui.compose
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
@@ -52,7 +51,7 @@ fun SearchScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddPatient: () -> Unit,
     onOpenVoiceSheet: () -> Unit,
-    onToggleLanguage: () -> Unit
+    onToggleLanguage: () -> Unit,
 ) {
     val isHindi = LocalIsHindi.current
     val context = LocalContext.current
@@ -66,17 +65,17 @@ fun SearchScreen(
     val villages by viewModel.villages.observeAsState(emptyList())
     val familyGroups by viewModel.familyGroups.observeAsState(emptyList())
     val totalCollectedToday by viewModel.totalCollectedToday.observeAsState(0.0)
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val isLoading by viewModel.isLoading.observeAsState(initial = false)
 
     var searchQuery by remember { mutableStateOf("") }
     var transactionsQuery by remember { mutableStateOf("") }
     var selectedDrawerItem by remember { mutableStateOf(DrawerItem.LEDGER) }
 
     val villageMap = remember(villages) {
-        villages.associate { it.id to LocaleManager.getLocalizedVillage(it.name, it.nameHindi) }
+        villages.associateBy({ it.id }, { LocaleManager.getLocalizedVillage(it.name, it.nameHindi) })
     }
 
-    BackHandler(enabled = drawerState.isOpen || selectedDrawerItem != DrawerItem.LEDGER) {
+    BackHandler(enabled = (drawerState.isOpen || selectedDrawerItem != DrawerItem.LEDGER)) {
         if (drawerState.isOpen) {
             scope.launch { drawerState.close() }
         } else {
@@ -247,7 +246,7 @@ fun LedgerTab(
                 )
             }
             items(recentPatients) { patient ->
-                PatientListItem(patient = patient, isHindi = isHindi, onClick = { onNavigateToDetail(patient.id) })
+                PatientListItem(patient = patient, isHindi = isHindi) { onNavigateToDetail(patient.id) }
             }
         } else {
             if (searchResults.isEmpty()) {
@@ -256,7 +255,7 @@ fun LedgerTab(
                 }
             } else {
                 items(searchResults) { patient ->
-                    PatientListItem(patient = patient, isHindi = isHindi, onClick = { onNavigateToDetail(patient.id) })
+                    PatientListItem(patient = patient, isHindi = isHindi) { onNavigateToDetail(patient.id) }
                 }
             }
         }
