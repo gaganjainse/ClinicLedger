@@ -62,23 +62,23 @@ object VoiceIntentParser {
 
     private val searchKeywords = setOf(
         "kitna", "baki", "baki hai", "hisaab", "kita", "dikhao", "khata", "balance",
-        "due", "how much", "का", "बकाया", "कितना", "हिसाब", "दिखाओ", "खाता"
+        "due", "how much", "का", "बकाया", "कितना", "हिसाब", "दिखाओ", "खाता",
     )
 
     private val medicineKeywords = setOf(
         "dawa", "dawai", "dava", "davai", "tablet", "syrup", "injection", "medicine",
-        "di", "दवा", "दवाई", "दी"
+        "di", "दवा", "दवाई", "दी",
     )
 
     private val paymentKeywords = setOf(
         "diye", "diya", "jama", "de gaya", "de diye", "paid", "payment",
         "paisa diya", "paisa diye", "दिये", "दिए", "जमा", "दे गए", "पैसा दिया",
-        "jama kar diye"
+        "jama kar diye",
     )
 
     private val newPatientKeywords = setOf(
         "naya", "nayi", "naya patient", "nayi patient", "naya bimaar",
-        "pehli baar", "new patient", "नया", "नयी", "नया रोगी", "पहली बार"
+        "pehli baar", "new patient", "नया", "नयी", "नया रोगी", "पहली बार",
     )
 
     private val correctionKeywords = setOf(
@@ -179,7 +179,7 @@ object VoiceIntentParser {
                         )
                         villageKeys.contains(w)
                     }
-                    (w.length >= 2 && !w.all { it.isDigit() } && !isHindiNumberWord(w) && !isVil && !isStopWord(w))
+                    ((w.length >= 2) && (!w.all { it.isDigit() }) && (!isHindiNumberWord(w)) && (!isVil) && (!isStopWord(w)))
                 }
                 
                 if (words.isNotEmpty()) {
@@ -203,7 +203,7 @@ object VoiceIntentParser {
                     villages.any { v ->
                         val engKey = v.name.lowercase()
                         val hindiKey = v.nameHindi.lowercase()
-                        cleanWord == engKey || cleanWord == hindiKey
+                        ((cleanWord == engKey) || (cleanWord == hindiKey))
                     }
                 } else {
                     val villageKeys = setOf(
@@ -212,11 +212,11 @@ object VoiceIntentParser {
                     villageKeys.contains(cleanWord)
                 }
 
-                val isValidNameWord = word.length >= 2 &&
-                        !word.all { it.isDigit() } &&
-                        !isStopWord(cleanWord) &&
-                        !isVillage &&
-                        !isHindiNumberWord(cleanWord)
+                val isValidNameWord = ((word.length >= 2) &&
+                        (!word.all { it.isDigit() }) &&
+                        (!isStopWord(cleanWord)) &&
+                        (!isVillage) &&
+                        (!isHindiNumberWord(cleanWord)))
 
                 if (isValidNameWord) {
                     foundStart = true
@@ -337,7 +337,7 @@ object VoiceIntentParser {
             val endLook = minOf(words.size - 1, group.endIndex + 4)
 
             for (i in startLook..endLook) {
-                if (i in group.startIndex..group.endIndex) continue
+                if (i in (group.startIndex..group.endIndex)) continue
                 val w = words[i].lowercase(Locale.getDefault())
                 if (medicineKeywordsNear.contains(w)) medScore += 2
                 if (paymentKeywordsNear.contains(w)) payScore += 2

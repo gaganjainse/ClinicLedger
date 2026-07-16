@@ -78,14 +78,14 @@ object DataSeeder {
                         relationshipEng = "Grandfather",
                         relationshipHin = "दादाजी",
                         isMale = true,
-                        alias = "Sitaram"
+                        alias = "Sitaram",
                     ),
-                    SeedMember("Saraswati Sharma", "सरस्वती शर्मा", "Grandmother", "दादीजी", false),
-                    SeedMember("Ramesh Sharma", "रमेश शर्मा", "Father", "पिताजी", true, "Ramesh"),
-                    SeedMember("Sunita Sharma", "सुनीता शर्मा", "Mother", "माताजी", false),
-                    SeedMember("Sunil Sharma", "सुनील शर्मा", "Son", "पुत्र", true, "Sunil"),
-                    SeedMember("Aarav Sharma", "आरव शर्मा", "Grandson", "पोता", true, "Aarav")
-                )
+                    SeedMember("Saraswati Sharma", "सरस्वती शर्मा", "Grandmother", "दादीजी", isMale = false),
+                    SeedMember("Ramesh Sharma", "रमेश शर्मा", "Father", "पिताजी", isMale = true, alias = "Ramesh"),
+                    SeedMember("Sunita Sharma", "सुनीता शर्मा", "Mother", "माताजी", isMale = false),
+                    SeedMember("Sunil Sharma", "सुनील शर्मा", "Son", "पुत्र", isMale = true, alias = "Sunil"),
+                    SeedMember("Aarav Sharma", "आरव शर्मा", "Grandson", "पोता", isMale = true, alias = "Aarav"),
+                ),
             ),
             SeedFamily(
                 nameEng = "Kailash Sharma's Family",
@@ -96,11 +96,11 @@ object DataSeeder {
                 casteHin = "शर्मा",
                 villageName = "Jhilai", // Same surname, completely separate family group in Jhilai
                 members = listOf(
-                    SeedMember("Kailash Sharma", "कैलाश शर्मा", "Grandfather", "दादाजी", true, "Kailash"),
-                    SeedMember("Kamla Sharma", "कमला शर्मा", "Grandmother", "दादीजी", false),
+                    SeedMember("Kailash Sharma", "कैलाश शर्मा", "Grandfather", "दादाजी", isMale = true, alias = "Kailash"),
+                    SeedMember("Kamla Sharma", "कमला शर्मा", "Grandmother", "दादीजी", isMale = false),
                     SeedMember("Deepak Sharma", "दीपक शर्मा", "Father", "पिताजी", true, "Deepu"),
                     SeedMember("Rekha Sharma", "रेखा शर्मा", "Mother", "माताजी", false),
-                    SeedMember("Kavita Sharma", "कविता शर्मा", "Daughter", "पुत्री", false)
+                    SeedMember("Kavita Sharma", "कविता शर्मा", "Daughter", "पुत्री", isMale = false),
                 )
             ),
             SeedFamily(
@@ -287,7 +287,7 @@ object DataSeeder {
         for (namePair in independentNames) {
             val village = villages[random.nextInt(villages.size)]
             val phonePrefix = listOf("98", "99", "97", "89", "88", "76", "77", "94")
-            val phone = phonePrefix[random.nextInt(phonePrefix.size)] + String.format("%08d", random.nextInt(100000000))
+            val phone = phonePrefix[random.nextInt(phonePrefix.size)] + String.format(java.util.Locale.US, "%08d", random.nextInt(100000000))
             
             val pastDate = getRandomDateInPast(random, 90)
             val patient = Patient(
@@ -323,7 +323,7 @@ object DataSeeder {
         val numTransactions = random.nextInt(5) // 0 to 4 transactions
         if (numTransactions > 0) {
             var runningBalance = 0.0
-            for (_unused in 1..numTransactions) {
+            repeat(numTransactions) {
                 val daysAgo = random.nextInt(90)
                 val transactionDate = getRandomDateInPast(random, daysAgo)
 
@@ -368,7 +368,7 @@ object DataSeeder {
                 )
                 repository.insertTransaction(tx)
 
-                runningBalance += if (type == "medicine" || type == "adjustment") amount else -amount
+                runningBalance += (if (((type == "medicine") || (type == "adjustment"))) amount else -amount)
             }
         }
     }

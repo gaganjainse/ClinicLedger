@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
                                     viewModel = searchViewModel,
                                     onNavigateBack = {
                                         navController.popBackStack()
-                                    }
+                                    },
                                 ) {
                                     navController.popBackStack()
                                 }
@@ -126,8 +126,8 @@ class MainActivity : AppCompatActivity() {
                                         type = NavType.StringType
                                         nullable = true
                                         defaultValue = null
-                                    }
-                                )
+                                    },
+                                ),
                             ) { backStackEntry ->
                                 val patientId = backStackEntry.arguments?.getLong("patientId") ?: 0L
 
@@ -137,10 +137,9 @@ class MainActivity : AppCompatActivity() {
                                     onNavigateBack = {
                                         navController.popBackStack()
                                     },
-                                    onNavigateToPatientDetail = { id ->
-                                        navController.navigate(Screen.PatientDetail.createRoute(id))
-                                    }
-                                )
+                                ) { id ->
+                                    navController.navigate(Screen.PatientDetail.createRoute(id))
+                                }
                             }
                         }
                     }
@@ -148,10 +147,9 @@ class MainActivity : AppCompatActivity() {
                     if (showVoiceAssistantState.value) {
                         VoiceInputSheetCompose(
                             onDismiss = { showVoiceAssistantState.value = false },
-                            onNavigateToPatientDetail = { id ->
-                                navController.navigate(Screen.PatientDetail.createRoute(id))
-                            }
-                        )
+                        ) { id ->
+                            navController.navigate(Screen.PatientDetail.createRoute(id))
+                        }
                     }
                 }
             }
