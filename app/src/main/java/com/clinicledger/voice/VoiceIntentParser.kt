@@ -108,7 +108,8 @@ object VoiceIntentParser {
     private val correctionKeywords = setOf(
         "galat", "galat ho gaya", "hata do", "hatao", "kat do", "kato",
         "sudhar", "wrong", "cancel", "undo", "hata den", "delete karo",
-        "गलत", "हटा दो", "हटाओ", "काट दो", "सुधार"
+        "saaf karo", "saaf",
+        "गलत", "हटा दो", "हटाओ", "काट दो", "सुधार", "साफ"
     )
 
     private val yesKeywords = setOf(
@@ -297,8 +298,10 @@ object VoiceIntentParser {
     private fun isHindiNumberWord(word: String): Boolean {
         val hindiNumWords = setOf(
             "ek", "do", "teen", "char", "paanch", "panch", "chheh", "saat", "aath", "nau", "das",
+            "bees", "tees", "chalis", "pachas", "saath", "sattar", "assi", "nabbe",
             "dedh", "dhai", "adhai", "sava", "sade", "paun", "paune", "sau", "hazaar", "hazar",
-            "एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस", "डेढ़", "ढाई", "सौ", "हजार"
+            "एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस", "बीस", "तीस", "चालीस", "पचास", "साठ", "सत्तर", "अस्सी", "नब्बे",
+            "डेढ़", "ढाई", "सौ", "हजार", "साढ़े", "पौने"
         )
         return hindiNumWords.contains(word)
     }

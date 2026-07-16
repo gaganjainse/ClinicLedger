@@ -42,7 +42,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
     private var tts: TextToSpeech? = null
     
     // Agentic Services
-    private val toolbox = ClinicToolbox(application, repository, transactionRepository)
+    private val toolbox = ClinicalActionToolbox(application, repository, transactionRepository)
     private val semanticResolver = SemanticResolver(database.clinicKnowledgeDao(), database.patientDao())
     private val skillService = SkillDiscoveryService(database.learnedSkillDao())
     private val brain = ContextualBrain()

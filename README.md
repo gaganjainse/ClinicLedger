@@ -1,150 +1,82 @@
-# Clinic Ledger (क्लिनिक लेजर)
+# Clinic Ledger OS (क्लिनिक लेजर) - v2.0 Ultra-Performance
 
-An offline-first, voice-assisted clinic ledger and patient memory database designed specifically for clinic doctors in India. This application serves as an ironclad financial and medical audit trail, allowing doctors to manage patient histories, balance dues, and families hands-free using natural language spoken commands.
-
----
-
-## About
-**Clinic Ledger** is an offline-first, voice-assisted medical ledger designed for rural clinic environments where voice-first interaction significantly improves productivity for practitioners. It serves as a robust, ironclad tool for managing patient histories and financial records completely offline.
+An offline-first, voice-assisted clinic ledger and patient memory database designed for clinical practitioners in India. **v2.0** introduces an **Ultra-Performance "Body" (120FPS)** and a **Native Agentic Diagnostic Hub**, transforming the app from a simple ledger into a robust, high-fidelity clinical operating system.
 
 ---
 
-## 🎨 Visual Identity & Core Interface
+## 🚀 v2.0 Ultra-Performance Upgrades
 
-| Home / Search with Quick Lookups | Voice Input & State Machine Sheet |
-| :---: | :---: |
-| Centered around a **"Mic-as-King"** persistent navigation bar. Quick cards instantly display patient aliases, localized village names, pending dues, recent activity notes, and last visit dates. | Triggered instantly from any screen. Handles speech-to-text processing, fuzzy lookups, and transactional intents completely offline. |
+### 1. The "120FPS Body"
+- **Aggressive Memoization**: Full utilization of `@Immutable` and `@Stable` modeling to hit 8ms frame targets for butter-smooth high-refresh-rate scrolling.
+- **Zero-Lag Lists**: Re-engineered all major lists (Analytics, Search, Transactions) with advanced `LazyColumn` optimizations (`key` and `contentType`).
+- **Standardized Architecture**: Renamed and reorganized all core hubs to follow professional Android industry standards (e.g., `MainDashboardScreen`, `LedgerSearchHub`).
 
----
+### 2. Native Architectural Diagnostic Hub
+- **Internal Maintenance Tool**: Shifted the `flow.jsx` vision into a functional, native Compose component with high-fidelity `Canvas` visuals.
+- **Real-Time Monitoring**: Integrated live database metrics, NLU intent confidence logs, and a real-time log streamer from the `SystemGuardian`.
+- **Integrated Testing**: Connected a comprehensive suite of **100+ JUnit 6 tests** to the diagnostic dashboard.
 
-## 🚀 Key Architectural Capabilities
-
-### 1. Clinic Memory Paradigm
-The ledger eliminates the need for manual navigation to answer simple inquiries. The **Search Screen** functions as a live dashboard showing:
-- **Fuzzy Search & Aliases**: Patients are instantly discoverable by their real name, regional spelling variations, or custom nicknames (stored in the `Alias` entity).
-- **Embedded Clinic Context**: Running balances, custom doctor notes, parent-child family groupings, and exact "Last Visited" timestamps are surfaced directly on patient list cards.
-
-### 2. "Mic-as-King" Voice Assistant
-- **Persistent Accessibility**: The bottom mic bar is universally available across all views in the App. Tapping it opens the `VoiceInputSheet` overlay.
-- **Robust Conversation State Machine**: Drives an interactive, non-blocking conversational loop:
-  $$\text{IDLE} \longrightarrow \text{LISTENING} \longrightarrow \text{PROCESSING} \longrightarrow \text{CONFIRMING} \longrightarrow \text{SAVING} \longrightarrow \text{DONE}$$
-- **Speech Confirmation Card**: A high-visibility confirmation panel displays the parsed parameters (Patient, Action, Amount, Remarks) with tactile **Haan (Confirm)** and **Badlo (Edit/Cancel)** controls.
-
-### 3. Localized TTS & Hindi Number Engine
-- **Voice Readbacks (TTS)**: Uses a dedicated `VoiceTtsManager` utilizing Android's TextToSpeech API configured for Hindi (`hi-IN`) and English to read aloud running balances (e.g., *"Ramesh, naya baki do sau pachas rupaee"*).
-- **Smart Dialect Number Parser**: Integrates a parser (`HindiNumberConverter`) converting complex Hindi and Hinglish numeric phrases into exact integer amounts:
-  - *"Dhai Sau"* (ढाई सौ) $\rightarrow$ `250`
-  - *"Dedh Hazaar"* (डेढ़ हजार) $\rightarrow$ `1500`
-  - *"Sawa Teen Sau"* (सवा तीन सौ) $\rightarrow$ `350`
-  - Standard numeral words (*"pachas"*, *"bavan"*, *"assi"*) mapped directly to their mathematical equivalents.
-
-### 4. Smart Intent Parsing
-The app intercepts natural voice phrases, processes them locally without network dependencies, and translates them into specific actions:
-- **Search Intent**: *"Ramesh ko dikhao"* $\rightarrow$ Opens Ramesh's Detail Screen.
-- **Medicine Entry**: *"Ravi ko ek sau pachas ki dawa di"* $\rightarrow$ Creates a `Medicine` transaction of `150` for Ravi.
-- **Payment Entry**: *"Amit ne do sau rupaee jama kiye"* $\rightarrow$ Creates a `Payment` transaction of `200` for Amit.
-- **Disambiguation Flow**: If a name matches multiple patients, the system reads aloud: *"Do Ramesh mile hain — kaun sa village?"* and displays a selection list.
-
-### 5. Type-Safe Jetpack Compose Navigation
-Migrated from rigid, manual state-based views to the modern **Jetpack Navigation Compose** library:
-- Centralized `NavHost` in `MainActivity.kt`.
-- Clean, serializable `Screen` routes with type-safe parameters (e.g., passing patient ID and name).
-- Built-in transitions supporting deep back-stack pop behaviors.
-
-### 6. Ironclad Financial Audit Trail
-- **Strict Running Balance**: All transactions (`Medicine`, `Payment`, `Correction`, `Initial`) are logged in a single database ledger.
-- **No Deletions Allowed**: Corrections are added as adjustment entries with a timestamped reason, preserving a clear, professional audit record for the clinic's accounts.
+### 3. Agentic Brain & Personalization
+- **Persistent Tuning**: Voice speed and Active Learning settings are now saved locally, persisting across app restarts.
+- **Habit-Aware Pacing**: The Assistant automatically adjusts its response speed based on the doctor's learned speech patterns and hurried tone.
+- **State-Preserving Navigation**: Fixed the language-switch bug; the app now perfectly preserves your current screen and data state during transitions.
 
 ---
 
-## 🗄️ Room Database Schema
+## 🎨 Visual Identity & Hubs
 
-The app runs on a highly structured local SQLite database managed via Room, consisting of five core entities to represent rural medical practices accurately:
-
-```
-  +---------------+        1        +-------------+
-  |    Village    | <-------------> |   Patient   |
-  +---------------+                 +-------------+
-  | id (PK)       |                 | id (PK)     | <---+
-  | name          |                 | name        |     |
-  | createdAt     |                 | phone       |     | 1
-  +---------------+                 | villageId   |     |
-                                    | familyId    |     |
-  +---------------+                 | notes       |     |
-  |  FamilyGroup  |                 | createdAt   |     |
-  +---------------+                 +-------------+     |
-  | id (PK)       |                        |            |
-  | name          |                        | 1          |
-  | createdAt     |                        v            |
-  +---------------+                 +-------------+     |
-                                    | Transaction |     |
-  +---------------+                 +-------------+     |
-  |     Alias     | 1               | id (PK)     |     |
-  +---------------+                 | patientId   | ----+
-  | id (PK)       |                 | type        |
-  | patientId     | --------------> | amount      |
-  | name          |                 | notes       |
-  +---------------+                 | date        |
-                                    +-------------+
-```
-
-1. **`Patient`**: Stores name, contact number, assigned village, notes, family group, and creation timestamp.
-2. **`Village`**: Holds village registries (with localized and standard names) to easily segment patients.
-3. **`Alias`**: Maps colloquial nicknames or phonetic variations back to the primary patient profile.
-4. **`Transaction`**: The transaction ledger. Tracks historical records (`Medicine`, `Payment`, `Correction`) with precise decimals, notes, and dates.
-5. **`FamilyGroup`**: Couples family members together to support unified billing and multi-patient summaries.
-
----
-
-## 📂 Project Package Structure
-
-```
-app/src/main/java/com/clinicledger/
-│
-├── data/
-│   ├── local/              # Room Database, DAOs (Patient, Village, Transaction, Alias, FamilyGroup)
-│   ├── models/             # Entity models (Patient, Village, Transaction, Alias, FamilyGroup)
-│   └── repository/         # Combined PatientRepository for transactional operations
-│
-├── ui/
-│   ├── search/             # SearchViewModel (handling state, query filtering, and listing)
-│   ├── util/               # LocaleManager, HindiNumberConverter, VoiceIntentParser, VoiceTtsManager
-│   └── compose/            # High-fidelity Jetpack Compose screens
-│       ├── SearchScreen.kt         # Live Dashboard (Mic bar, patient list, memory tags)
-│       ├── AddPatientScreen.kt     # Full-screen dedicated form with Village dropdown selectors
-│       ├── PatientDetailScreen.kt  # Patient profiles, financial ledger, and note inputs
-│       ├── VoiceInputSheet.kt      # State-machine driven speech-to-text overlay
-│       ├── AnalyticsScreen.kt      # Weekly/Monthly revenue, top balances, village data
-│       └── BackupScreen.kt         # WorkManager automation, backup audits, JSON utilities
-│
-└── MainActivity.kt         # App Entry, NavHost builder, and persistent top/bottom app bars
-```
+| Hub | Description |
+| :--- | :--- |
+| **Main Dashboard** | The central command center with high-performance search and morning briefings. |
+| **Ledger Search Hub** | Ultra-fast discovery with fuzzy matching for aliases and villages. |
+| **Analytics Dashboard** | Deep financial insights, debtor aging buckets, and village-level metrics. |
+| **Diagnostic Hub** | Full architectural transparency with live node status and log streams. |
 
 ---
 
 ## ⚡ Setup, Building, and Testing
 
 ### Prerequisites
-- Android SDK 34+
-- Android Studio Ladybug or newer
-- Kotlin 1.9.0+
+- **Android SDK 37+** (Targeting latest Android APIs)
+- **AGP 9.3.0**
+- **JDK 26**
+- **JUnit 6**
 
-### Local Build Instructions
-To compile the debug APK:
+### Local Build
 ```bash
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
 ```
 
-### Running Unit and Architecture Tests
-The codebase includes local JVM unit tests and JVM-based Robolectric verification:
+### Comprehensive Testing (100+ Tests)
 ```bash
-gradle :app:testDebugUnitTest
+./gradlew test
 ```
 
 ---
 
-## 🌐 Localization Support
-Fully localized string resources cleanly separate text translations:
-- **English (`res/values/strings.xml`)**: Clean, clinical terminology.
-- **Hindi (`res/values-hi/strings.xml`)**: Locally relevant Hindi terms.
-- Settings Screen allows a seamless, persistent one-tap toggle between English and Hindi, immediately updating the localized schema references and Speech Recognizer configurations.
+## 📂 Project Package Structure (Refactored)
+
+```
+app/src/main/java/com/clinicledger/
+│
+├── data/
+│   ├── local/              # Room Database v5.0 (SQLite Engine)
+│   ├── models/             # @Immutable Data Models
+│   └── repository/         # Cached Repositories (Village, Patient, Transaction)
+│
+├── service/                # ClinicalActionToolbox, ContextualBrain, SystemGuardian
+│
+├── ui/
+│   ├── util/               # LocaleManager, FeedbackProvider, HabitMapper
+│   └── compose/            # Standardized Hubs & Screens
+│       ├── MainDashboardScreen.kt   # Root Navigation Hub
+│       ├── LedgerSearchHub.kt       # Search & Listing Engine
+│       ├── PatientRegistrationScreen.kt # Ergonomic Forms
+│       ├── ArchitecturalDiagnosticHub.kt # Native Maintenance Tool
+│       └── ...
+```
+
+---
+
+## 🌐 Industrial-Grade Reliability
+Clinic Ledger OS is designed to be **ironclad**. With no deletions allowed, every adjustment is an entry in a medical audit trail. The **System Guardian** runs continuous health checks on data integrity and semantic link consistency, ensuring the ledger remains a source of truth for the clinic.

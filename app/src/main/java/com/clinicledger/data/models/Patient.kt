@@ -1,5 +1,6 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -8,11 +9,9 @@ import java.util.Date
 
 /**
  * Room entity representing a patient in the clinic ledger.
- * Each patient belongs to a village and carries a running balance of
- * medicine costs minus payments. The balance is recalculated from
- * transactions rather than being the source of truth.
  */
 @Entity(tableName = "patients")
+@Immutable
 data class Patient(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

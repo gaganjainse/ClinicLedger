@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -17,26 +18,34 @@ import com.clinicledger.ui.compose.components.ClinicTopAppBar
 import com.clinicledger.ui.search.viewmodel.SearchViewModel
 import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 
-enum class NavItem(val route: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val labelRes: Int, val titleRes: Int) {
-    LEDGER("ledger", Icons.AutoMirrored.Rounded.ListAlt, R.string.nav_ledger, R.string.app_name),
-    ANALYTICS("analytics_tab", Icons.Rounded.BarChart, R.string.nav_analytics, R.string.analytics_title),
-    VILLAGES("villages_tab", Icons.Rounded.Cabin, R.string.nav_villages, R.string.villages_title),
-    DIAGNOSTICS("diagnostics_tab", Icons.Rounded.Terminal, R.string.settings_system_health, R.string.settings_system_health),
-    SETTINGS("settings_tab", Icons.Rounded.Settings, R.string.nav_settings, R.string.settings_title)
+/**
+ * Main navigation destinations for the app.
+ * Diagnostics removed from bottom bar as per physical body sync plan.
+ */
+enum class NavItem(val icon: androidx.compose.ui.graphics.vector.ImageVector, val labelRes: Int, val titleRes: Int) {
+    LEDGER(Icons.AutoMirrored.Rounded.ListAlt, R.string.nav_ledger, R.string.app_name),
+    ANALYTICS(Icons.Rounded.BarChart, R.string.nav_analytics, R.string.analytics_title),
+    VILLAGES(Icons.Rounded.Cabin, R.string.nav_villages, R.string.villages_title),
+    SETTINGS(Icons.Rounded.Settings, R.string.nav_settings, R.string.settings_title)
 }
 
+/**
+ * The root container for the primary application hubs.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(
+fun MainDashboardScreen(
     viewModel: SearchViewModel,
     analyticsViewModel: AnalyticsViewModel,
     voiceViewModel: VoiceAssistantViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddPatient: () -> Unit,
+    onNavigateToDiagnostics: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onOpenVoiceSheet: () -> Unit,
     onToggleLanguage: () -> Unit
 ) {
-    var selectedItem by remember { mutableStateOf(NavItem.LEDGER) }
+    var selectedItem by rememberSaveable { mutableStateOf(NavItem.LEDGER) }
     val isHindi = LocalIsHindi.current
 
     // Observe data from ViewModel for the dashboard
@@ -52,7 +61,7 @@ fun DashboardScreen(
         topBar = {
             ClinicTopAppBar(
                 title = stringResource(selectedItem.titleRes),
-                subtitle = if (selectedItem == NavItem.LEDGER) "Clinical Operating System" else null
+                subtitle = if (selectedItem == NavItem.LEDGER) "Clinic Ledger OS v2.0" else null
             )
         },
         bottomBar = {
@@ -94,9 +103,11 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
+        val contentModifier = Modifier.padding(paddingValues)
+        
+        Box(modifier = contentModifier) {
             when (selectedItem) {
-                NavItem.LEDGER -> ClinicalDashboard(
+                NavItem.LEDGER -> LedgerDashboardScreen(
                     searchQuery = searchQuery,
                     onSearchChange = { 
                         searchQuery = it
@@ -115,10 +126,11 @@ fun DashboardScreen(
                     onNavigateToPatientDetail = onNavigateToDetail
                 )
                 NavItem.VILLAGES -> VillageManagementContent()
-                NavItem.DIAGNOSTICS -> SystemDiagnosticsContent()
                 NavItem.SETTINGS -> SettingsScreen(
                     onToggleLanguage = onToggleLanguage,
-                    voiceViewModel = voiceViewModel
+                    voiceViewModel = voiceViewModel,
+                    onNavigateToDiagnostics = onNavigateToDiagnostics,
+                    onNavigateToAbout = onNavigateToAbout
                 )
             }
         }

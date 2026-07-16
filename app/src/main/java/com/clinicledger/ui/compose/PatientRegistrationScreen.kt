@@ -27,9 +27,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 
+/**
+ * Modern Clinical Registration hub.
+ * Redesigned for ergonomics and efficiency.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddPatientScreen(
+fun PatientRegistrationScreen(
     viewModel: SearchViewModel,
     onNavigateBack: () -> Unit,
     onPatientAdded: () -> Unit,
@@ -60,7 +64,7 @@ fun AddPatientScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Section 1: Basic Info
-            FormCard(title = if (isHindi) "बुनियादी जानकारी" else "Basic Information") {
+            ClinicalFormCard(title = if (isHindi) "बुनियादी जानकारी" else "Basic Information") {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -80,7 +84,7 @@ fun AddPatientScreen(
             }
 
             // Section 2: Clinical Context
-            FormCard(title = if (isHindi) "क्लीनिकल संदर्भ" else "Clinical Context") {
+            ClinicalFormCard(title = if (isHindi) "क्लीनिकल संदर्भ" else "Clinical Context") {
                 // Village
                 ExposedDropdownMenuBox(
                     expanded = villageExpanded,
@@ -170,7 +174,7 @@ fun AddPatientScreen(
 }
 
 @Composable
-private fun FormCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun ClinicalFormCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),

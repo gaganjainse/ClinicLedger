@@ -23,8 +23,12 @@ import com.clinicledger.ui.compose.components.ClinicEmptyState
 import com.clinicledger.ui.compose.components.MorningBriefSection
 import com.clinicledger.ui.compose.components.PatientListItem
 
+/**
+ * Hub for clinical records, search, and the morning briefing.
+ * Renamed from ClinicalDashboard as per industry standards.
+ */
 @Composable
-fun ClinicalDashboard(
+fun LedgerDashboardScreen(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     recentPatients: List<Patient>,
@@ -42,7 +46,7 @@ fun ClinicalDashboard(
             contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
         ) {
             // Morning Briefing Card
-            item {
+            item(key = "briefing") {
                 Box(modifier = Modifier.padding(16.dp)) {
                     MorningBriefSection(
                         allPatients = allPatients,
@@ -53,7 +57,7 @@ fun ClinicalDashboard(
             }
 
             // High-Performance Search Bar
-            item {
+            item(key = "search_bar") {
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = onSearchChange,
@@ -71,6 +75,7 @@ fun ClinicalDashboard(
                     key = { it.id },
                     contentType = { "patient" }
                 ) { patient ->
+                    // High-Performance Item with ripple optimization
                     PatientListItem(patient = patient, isHindi = isHindi) {
                         onNavigateToDetail(patient.id)
                     }

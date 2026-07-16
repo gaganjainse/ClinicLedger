@@ -41,8 +41,8 @@ class GetFamilyTreeUseCase {
         for (m in members) {
             val rel = m.relationship.lowercase().trim()
             
-            // Grandparents identification
-            val isGen1 = rel.contains("grand") || 
+            // Grandparents identification (Avoid matching grandson/granddaughter)
+            val isGen1 = (rel.contains("grand") && !rel.contains("son") && !rel.contains("daughter") && !rel.contains("child")) || 
                          rel.contains("daada") || 
                          rel.contains("daadi") || 
                          rel.contains("naana") || 

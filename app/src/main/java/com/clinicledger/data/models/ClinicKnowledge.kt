@@ -1,14 +1,15 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
 
 /**
  * Entity representing a semantic link in the Clinic's Knowledge Graph.
- * Examples: "Ramesh / Wife / Sita", "Sita / Husband / Ramesh".
  */
 @Entity(tableName = "clinic_knowledge")
+@Immutable
 data class ClinicKnowledge(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val subjectId: Long, // Usually a Patient ID

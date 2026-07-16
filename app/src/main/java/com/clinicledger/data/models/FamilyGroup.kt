@@ -1,5 +1,6 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
@@ -10,6 +11,7 @@ import java.util.Date
     tableName = "family_groups",
     indices = [Index("village_id")]
 )
+@Immutable
 data class FamilyGroup(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

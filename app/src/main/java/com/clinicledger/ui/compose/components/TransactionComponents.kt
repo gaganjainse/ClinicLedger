@@ -1,5 +1,6 @@
 package com.clinicledger.ui.compose.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -34,32 +35,32 @@ fun ClinicTransactionItem(
     val icon = if (transaction.type == "payment") Icons.Rounded.Payments else Icons.Rounded.LocalPharmacy
     val prefix = if (transaction.type == "payment") "-" else "+"
 
-    Surface(
+    Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 12.dp)
+            .padding(vertical = 4.dp, horizontal = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = CircleShape,
-                color = accentColor.copy(alpha = 0.08f),
-                modifier = Modifier.size(40.dp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -70,7 +71,9 @@ fun ClinicTransactionItem(
                         text = LocaleManager.formatPatientName(patientName),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 
@@ -78,7 +81,8 @@ fun ClinicTransactionItem(
                     Text(
                         text = villageName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1
                     )
                 }
 

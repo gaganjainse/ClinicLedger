@@ -6,7 +6,7 @@ import androidx.navigation.NavController
  * Defines and executes "Clinical Protocols" which are sequences of app actions.
  * Allows the doctor to trigger complex workflows with a single command.
  */
-class RoutineTool(private val toolbox: ClinicToolbox) {
+class RoutineTool(private val toolbox: ClinicalActionToolbox) {
 
     /**
      * Executes a named protocol.

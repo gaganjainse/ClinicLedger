@@ -18,7 +18,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.clinicledger.data.repository.PatientRepository
 import com.clinicledger.data.repository.TransactionRepository
-import com.clinicledger.service.ClinicToolbox
+import com.clinicledger.service.ClinicalActionToolbox
 import com.clinicledger.service.BackupService
 import com.clinicledger.service.SystemGuardian
 import com.clinicledger.ui.compose.*
@@ -49,6 +49,8 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings")
     object Villages : Screen("villages")
+    object Diagnostics : Screen("diagnostics")
+    object About : Screen("about")
 }
 
 /**
@@ -115,7 +117,7 @@ class MainActivity : AppCompatActivity() {
                         ) {
                             // Main Dashboard Hub
                             composable(Screen.Dashboard.route) {
-                                DashboardScreen(
+                                MainDashboardScreen(
                                     viewModel = searchViewModel,
                                     analyticsViewModel = analyticsViewModel,
                                     onNavigateToDetail = { id ->
@@ -123,6 +125,12 @@ class MainActivity : AppCompatActivity() {
                                     },
                                     onNavigateToAddPatient = {
                                         navController.navigate(Screen.AddPatient.route)
+                                    },
+                                    onNavigateToDiagnostics = {
+                                        navController.navigate(Screen.Diagnostics.route)
+                                    },
+                                    onNavigateToAbout = {
+                                        navController.navigate(Screen.About.route)
                                     },
                                     onOpenVoiceSheet = {
                                         triggerVoiceAssistant()
@@ -137,7 +145,7 @@ class MainActivity : AppCompatActivity() {
                             
                             // Registration Screen
                             composable(Screen.AddPatient.route) {
-                                AddPatientScreen(
+                                PatientRegistrationScreen(
                                     viewModel = searchViewModel,
                                     onNavigateBack = {
                                         navController.popBackStack()
@@ -192,6 +200,20 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 )
                             }
+
+                            // Diagnostics Screen
+                            composable(Screen.Diagnostics.route) {
+                                ArchitecturalDiagnosticHub(
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            // About Screen
+                            composable(Screen.About.route) {
+                                AboutScreen(
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
                         }
                     }
 
@@ -199,7 +221,7 @@ class MainActivity : AppCompatActivity() {
                     if (showVoiceAssistantState.value) {
                         val repository = PatientRepository(this@MainActivity)
                         val transactionRepository = TransactionRepository(this@MainActivity)
-                        val toolbox = remember { ClinicToolbox(this@MainActivity, repository, transactionRepository) }
+                        val toolbox = remember { ClinicalActionToolbox(this@MainActivity, repository, transactionRepository) }
                         
                         VoiceInputSheetCompose(
                             onDismiss = { showVoiceAssistantState.value = false },
@@ -236,11 +258,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Updates the user's preferred language and restarts the activity to apply changes.
+     * Updates the user's preferred language and restarts the activity while preserving navigation state.
      */
     private fun setLocale(lang: String) {
         LocaleManager.saveLocale(this, lang)
         LocaleManager.applyLocaleLegacy(this)
+        
+        // Activity will be recreated with new locale; NavHost will handle the rest if configured correctly
         recreate()
     }
 }

@@ -39,16 +39,16 @@ fun PatientListItem(
     onClick: () -> Unit
 ) {
     val accentColor = if (patient.currentBalance > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val containerColor = if (patient.currentBalance > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.05f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.05f)
+    val containerColor = if (patient.currentBalance > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
 
-    Surface(
+    Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 12.dp)
+            .padding(vertical = 4.dp, horizontal = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
@@ -56,23 +56,23 @@ fun PatientListItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Patient Avatar / Index
-            Surface(
-                shape = CircleShape,
-                color = containerColor,
-                modifier = Modifier.size(48.dp)
+            // Patient Avatar / Index (Optimized with Canvas/Surface)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(containerColor),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (index != null) {
-                        Text(
-                            text = (index + 1).toString(),
-                            fontWeight = FontWeight.Black,
-                            color = accentColor.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    } else {
-                        Icon(Icons.Rounded.Person, contentDescription = null, tint = accentColor)
-                    }
+                if (index != null) {
+                    Text(
+                        text = (index + 1).toString(),
+                        fontWeight = FontWeight.Black,
+                        color = accentColor.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                } else {
+                    Icon(Icons.Rounded.Person, contentDescription = null, tint = accentColor)
                 }
             }
 
@@ -89,16 +89,14 @@ fun PatientListItem(
                 )
                 
                 // Village & Status Row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Rounded.LocationOn,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
                     )
+                    Spacer(Modifier.width(4.dp))
                     Text(
                         text = patient.village?.let {
                             if (isHindi) it.nameHindi.ifEmpty { it.name } else it.name
@@ -119,13 +117,13 @@ fun PatientListItem(
                     color = accentColor
                 )
                 if (patient.currentBalance > 0) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(4.dp)
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = if (isHindi) "बकाया" else "DEBT",
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.ExtraBold

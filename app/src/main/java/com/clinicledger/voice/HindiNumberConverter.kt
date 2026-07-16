@@ -78,22 +78,45 @@ object HindiNumberConverter {
         val words = clean.split("\\s+".toRegex()).filter { it.isNotBlank() }
         var total = 0.0
         var current = 0.0
+        var modifier = 0.0
+
         for (w in words) {
             when (w) {
                 "एक", "ek", "eak" -> current += 1
                 "दो", "do", "dho" -> current += 2
                 "तीन", "teen", "tin" -> current += 3
                 "चार", "char", "caar" -> current += 4
-                "पाँच", "paanch", "paanch", "panch" -> current += 5
-                "छह", "chhah", "che", "chhah", "chhe" -> current += 6
+                "पाँच", "paanch", "panch" -> current += 5
+                "छह", "chhah", "che", "chhe" -> current += 6
                 "सात", "saat", "sat" -> current += 7
                 "आठ", "aath", "ath" -> current += 8
-                "नौ", "nau", "nau" -> current += 9
+                "नौ", "nau" -> current += 9
                 "दस", "das", "dus" -> current += 10
-                "सौ", "sau", "sou" -> current = maxOf(current, 1.0) * 100
-                "हज़ार", "hazaar", "hazar", "hajaar" -> current = maxOf(current, 1.0) * 1000
-                "लाख", "lakh", "laakh" -> current = maxOf(current, 1.0) * 100000
-                "करोड़", "crore", "karod" -> current = maxOf(current, 1.0) * 10000000
+                "बीस", "bees", "bis" -> current += 20
+                "तीस", "tees", "tis" -> current += 30
+                "चालीस", "chalis" -> current += 40
+                "पचास", "pachas" -> current += 50
+                "साठ", "saath" -> current += 60
+                "सत्तर", "sattar" -> current += 70
+                "अस्सी", "assi" -> current += 80
+                "नब्बे", "nabbe" -> current += 90
+                "सौ", "sau", "sou" -> {
+                    current = (if (current == 0.0) 1.0 else current) + modifier
+                    current *= 100
+                    modifier = 0.0
+                }
+                "हज़ार", "hazaar", "hazar", "hajaar" -> {
+                    current = (if (current == 0.0) 1.0 else current) + modifier
+                    current *= 1000
+                    modifier = 0.0
+                }
+                "लाख", "lakh", "laakh" -> {
+                    current = (if (current == 0.0) 1.0 else current) + modifier
+                    current *= 100000
+                    modifier = 0.0
+                }
+                "साढ़े", "sade", "saade" -> modifier = 0.5
+                "पौने", "paune", "puna" -> modifier = -0.25
                 "डेढ़", "dedh", "derh" -> current += 1.5
                 "ढाई", "dhai", "dhaai" -> current += 2.5
                 else -> {
@@ -102,8 +125,8 @@ object HindiNumberConverter {
                 }
             }
         }
-        total += current
-        return if (total > 0) total else null
+        total += current + (modifier * 100) // Fallback for things like "sade teen" without "sau"
+        return if (total != 0.0) total else null
     }
 
     private fun convertWhole(n: Long): String = when {

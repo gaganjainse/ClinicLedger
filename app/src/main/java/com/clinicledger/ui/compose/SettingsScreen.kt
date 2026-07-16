@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     onToggleLanguage: () -> Unit,
     voiceViewModel: VoiceAssistantViewModel,
+    onNavigateToDiagnostics: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -123,13 +125,13 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_system_health),
                 subtitle = "Interactive Architecture Map",
                 icon = Icons.Rounded.AccountTree,
-                onClick = { /* Could navigate to flow visualization */ }
+                onClick = onNavigateToDiagnostics
             )
             SettingsItem(
                 title = stringResource(R.string.settings_app_info),
-                subtitle = "Clinic Ledger OS v1.2 (Agentic Core)",
+                subtitle = "Clinic Ledger OS v2.0 (Ultra-Performance)",
                 icon = Icons.Rounded.Info,
-                onClick = {}
+                onClick = onNavigateToAbout
             )
         }
         

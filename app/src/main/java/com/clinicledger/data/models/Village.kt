@@ -1,5 +1,6 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -9,12 +10,12 @@ import java.util.Date
 
 /**
  * Room entity representing a village that patients belong to.
- * The name column has a unique index to prevent duplicate village entries.
  */
 @Entity(
     tableName = "villages",
     indices = [Index("name", unique = true)]
 )
+@Immutable
 data class Village(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

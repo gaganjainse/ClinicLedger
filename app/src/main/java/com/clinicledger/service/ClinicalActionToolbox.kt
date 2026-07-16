@@ -10,9 +10,9 @@ import java.util.*
 
 /**
  * The "App API" that defines all actionable tasks the Assistant can perform.
- * This makes the app "programmable" by the local command orchestrator or an AI.
+ * Renamed to ClinicalActionToolbox for better clarity in the service layer.
  */
-class ClinicToolbox(
+class ClinicalActionToolbox(
     private val context: Context,
     private val patientRepository: PatientRepository,
     private val transactionRepository: TransactionRepository

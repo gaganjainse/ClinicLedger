@@ -1,5 +1,6 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -11,12 +12,6 @@ import java.util.Date
 
 /**
  * Room entity representing a financial transaction for a patient.
- * Each transaction is either a debit (medicine cost or adjustment) or
- * a credit (payment). The patient's running balance is derived by
- * summing all transactions: debits increase the balance, credits decrease it.
- *
- * A foreign key to [Patient] with CASCADE delete ensures that when a
- * patient is removed, all their transactions are removed as well.
  */
 @Entity(
     tableName = "transactions",
@@ -30,6 +25,7 @@ import java.util.Date
     ],
     indices = [Index("patient_id")]
 )
+@Immutable
 data class Transaction(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

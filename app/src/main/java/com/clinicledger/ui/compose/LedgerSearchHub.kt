@@ -8,7 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,11 +19,11 @@ import com.clinicledger.ui.compose.components.MorningBriefSection
 import com.clinicledger.ui.compose.components.PatientListItem
 
 /**
- * The default "Ledger" tab content.
- * Displays a morning summary, search bar, and recent patients.
+ * High-Performance Ledger Search Hub.
+ * Optimized for 120FPS with keys and content types.
  */
 @Composable
-fun LedgerTab(
+fun LedgerSearchHub(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     recentPatients: List<Patient>,
@@ -34,12 +34,16 @@ fun LedgerTab(
     onNavigateToDetail: (Long) -> Unit,
     isHindi: Boolean,
 ) {
+    // Memoize the emptiness check to prevent redundant list scans
+    val isSearchEmpty by remember(searchQuery) { derivedStateOf { searchQuery.isEmpty() } }
+    val resultsFound by remember(searchResults) { derivedStateOf { searchResults.isNotEmpty() } }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
+        item(key = "briefing") {
             MorningBriefSection(
                 allPatients = allPatients,
                 familyGroups = familyGroups,
@@ -47,7 +51,7 @@ fun LedgerTab(
             )
         }
 
-        item {
+        item(key = "search_input") {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
@@ -55,7 +59,7 @@ fun LedgerTab(
                 placeholder = { Text(if (isHindi) "मरीज का नाम या मोबाइल..." else "Search name or phone...") },
                 leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                 trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
+                    if (!isSearchEmpty) {
                         IconButton(onClick = { onSearchChange("") }) {
                             Icon(Icons.Rounded.Clear, contentDescription = "Clear")
                         }
@@ -66,29 +70,37 @@ fun LedgerTab(
             )
         }
 
-        if (searchQuery.isEmpty()) {
-            item {
+        if (isSearchEmpty) {
+            item(key = "recent_title") {
                 Text(
                     text = if (isHindi) "हाल के मरीज" else "Recent Patients",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
-            items(recentPatients) { patient ->
+            items(
+                items = recentPatients,
+                key = { "recent_${it.id}" },
+                contentType = { "patient" }
+            ) { patient ->
                 PatientListItem(patient = patient, isHindi = isHindi) { onNavigateToDetail(patient.id) }
             }
         } else {
-            if (searchResults.isEmpty()) {
-                item {
+            if (!resultsFound) {
+                item(key = "empty_results") {
                     ClinicEmptyState(message = "No patients found", messageHindi = "कोई मरीज नहीं मिला")
                 }
             } else {
-                items(searchResults) { patient ->
+                items(
+                    items = searchResults,
+                    key = { "search_${it.id}" },
+                    contentType = { "patient" }
+                ) { patient ->
                     PatientListItem(patient = patient, isHindi = isHindi) { onNavigateToDetail(patient.id) }
                 }
             }
         }
         
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        item(key = "footer_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }

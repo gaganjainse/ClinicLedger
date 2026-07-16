@@ -1,5 +1,6 @@
 package com.clinicledger.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -10,9 +11,6 @@ import java.util.Date
 
 /**
  * Room entity representing an alternate name (alias) for a patient.
- * This enables searching by common nicknames or alternative spellings.
- * A foreign key to [Patient] with CASCADE delete ensures aliases are
- * removed when the parent patient is deleted.
  */
 @Entity(
     tableName = "aliases",
@@ -26,6 +24,7 @@ import java.util.Date
     ],
     indices = [Index("patient_id")]
 )
+@Immutable
 data class Alias(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
