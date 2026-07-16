@@ -32,14 +32,22 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             )
 
             val gson = GsonBuilder().setPrettyPrinting().create()
-            val json = gson.toJson(backupData)
+            val jsonData = gson.toJson(backupData)
+            
+            // v3.0 Hardening: Add Integrity Checksum and Metadata
+            val finalJson = gson.toJson(mapOf(
+                "version" to 3.0,
+                "timestamp" to Date().time,
+                "checksum" to com.clinicledger.service.BackupService.calculateChecksum(jsonData),
+                "data" to backupData
+            ))
 
             val backupDir = File(applicationContext.getExternalFilesDir(null), "backups")
             backupDir.mkdirs()
 
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val file = File(backupDir, "auto_backup_$timestamp.json")
-            file.writeText(json)
+            file.writeText(finalJson)
 
             cleanupOldBackups(backupDir)
 

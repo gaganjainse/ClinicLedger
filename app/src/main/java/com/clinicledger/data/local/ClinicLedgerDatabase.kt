@@ -31,9 +31,10 @@ import com.clinicledger.data.converters.DateConverter
         Transaction::class,
         FamilyGroup::class,
         ClinicKnowledge::class,
-        LearnedSkill::class
+        LearnedSkill::class,
+        com.clinicledger.data.models.SystemLog::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -52,6 +53,8 @@ abstract class ClinicLedgerDatabase : RoomDatabase() {
     abstract fun clinicKnowledgeDao(): ClinicKnowledgeDao
 
     abstract fun learnedSkillDao(): LearnedSkillDao
+
+    abstract fun systemLogDao(): SystemLogDao
 
     companion object {
         @Volatile

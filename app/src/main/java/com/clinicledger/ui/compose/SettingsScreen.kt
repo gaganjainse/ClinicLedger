@@ -142,7 +142,7 @@ fun SettingsScreen(
                         scope.launch {
                             DataSeeder.clearAllData(context)
                             showClearDialog = false
-                            android.widget.Toast.makeText(context, "Database cleared", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Database cleared", Toast.LENGTH_SHORT).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -165,7 +165,7 @@ fun SettingsScreen(
                         scope.launch {
                             DataSeeder.seedDemoDataForce(context)
                             showReseedDialog = false
-                            android.widget.Toast.makeText(context, "Demo data loaded", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Demo data loaded", Toast.LENGTH_SHORT).show()
                         }
                     }
                 ) { Text(stringResource(R.string.demo_confirm_yes)) }

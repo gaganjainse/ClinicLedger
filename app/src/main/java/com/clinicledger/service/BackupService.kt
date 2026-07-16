@@ -5,6 +5,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.io.File
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -13,6 +14,14 @@ import java.util.concurrent.TimeUnit
 object BackupService {
 
     private const val WORK_NAME = "daily_auto_backup"
+
+    /**
+     * Generates a SHA-256 checksum for data integrity validation.
+     */
+    fun calculateChecksum(data: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(data.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
 
     fun scheduleBackup(context: Context) {
         val request = PeriodicWorkRequestBuilder<BackupWorker>(24, TimeUnit.HOURS)

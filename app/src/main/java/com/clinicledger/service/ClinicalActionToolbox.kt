@@ -25,7 +25,7 @@ class ClinicalActionToolbox(
      * Executes a complex reasoning task via local LLM.
      */
     suspend fun getDeepReasoning(prompt: String): String {
-        return llamaService.chat(prompt)
+        return llamaService.infer(prompt)
     }
 
     /**

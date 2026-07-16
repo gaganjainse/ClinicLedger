@@ -1,0 +1,59 @@
+Clinic Ledger Issues
+GAGAN INSERT THE IMAGE OF CHATGPT LANDING PAGE?
+
+Add drop-down to the relationship in the new patient column?
+The Mic button stopped working?
+All patients page sorting issue, the list doesn't update?
+Enable left right scroll for every element row bar so that the text doesn't wrap to next line?
+Going back once closes the app, no exit modal or the double tap protection?
+Edges of the search bar are rounded but border line is rectangle so it is cut off?
+Page flow is wrong as going back once in the backup and restore page does not go to settings page but home page?
+There are two back arrows on many pages. The navigation of the whole system seems off?
+When changing language in settings, the page changes to home, it does not remain in settings?
+Navigation is not uniform, the All Patients page is reachable through recent patients, remove that?
+Make navigation uniform?
+Adding a home button on top of each page is wrong?
+If doing AI in the app, which lives in the app like notion, the Mic button should be on each page to ask a question?
+The village icon an navigation to home icon are same?
+In Village and families page, you should be able to edit the whole family group, but you can only change the name here, and that function has issues to add it is here and there, you can edit it on card or something, link it or something, i mean it is a mess?
+There is no place in the whole app where i can know all the transactions that happening in chronological order, i mean logs or history that are in every payment app?
+The profile photo section is absent, but it can be useful, like using Mic my father is adding a new patient, them there should pop up a message to open a camera and take a photo for profile picture. Then image based matching is also feasible?
+I can't edit Village of phone number of a patient anytime after once adding a new patient?
+Adjustment, Payment, Medicine, these three somehow doesn't represent their function by name only?
+And adding + for dues in red and - for payment in green is out of habit even if correct, the whole calculation system seems ill fitted?
+My father mostly used lower case for everything, so the card should automatically fix to Aa Bb type?
+Everything like analytics and other pages should be adjusted reacordingly?
+Financial Stats on Analytics should extend to a new modal by tapping on each section?
+Make respective modals for all four sections and also for each village in dues breakdown per village and also in all three sections of Overdue Dues Aging(Inactive Accounts) and the same in patient not visited more than 60+ days section?
+
+In family members in the grouping of clinic memory, for Hazari Lal Yadav, relationship is mentioned as Grandfather, but this is wrong point of view, a family tree would best represent it, make this the setting everywhere?
+Also the negative dues shown in many places, remove that setting, if a person payed for another family member, decrease that amount from the family member's account, but mention it on both their accounts, but don't count it on the payer's total calculation but only on the family member's calculation, but it should be mentioned in both places, paid for: in payer's account, and paid by: in family member's account?
+And in all patients mention total number of patients somewhere, and do it in analytics section too where it fits?
+Somewhere i tapped in two different places in quick succession and the whole page went black in dark mode, maybe would have gone white in white mode, must be some bug, it happens when you use the back button to go back, and click the same section of the screen once again in quick succession in villages and families and also in backup and restore, it means it happens with the white back arrow and the same happens with green back arrow?
+When you double click on the home button in add patient page, it just blinks and the screen remains the same, but screen should return to home screen then come back to add patient page, which means the response is very slow?
+In clinic memory, beside family group, there are two +s on adding family option?
+Refine the headings or titles of each component according to its work properly?
+In clinic memory, for village networks, after tapping the village, there is family groups mentions and can be expanded but no individual/unlinked patients mentioned?
+In quick facts in institutional insight, no total no of patients are mentioned?
+In backup and restore page, there is a databases maintainance section which is totally unnecessary and the auto backup section is enabled automatically with no way to disable it, there should be a toggle switch , and no backup and restore logs are there, and automatic and manual should be mentioned in logsreplace the database maintainance section with backup and restore logs?
+I added a village named Choru in English mode, then changed to Hindi mode but it did not automatically change to ?????
+The sidebar consumes 80% of screen which is not needed, it should fit in according to word length + some padding?
+Shouldn't the opening page look like this: Chat chatgpt Android opening/landing page?
+as an overlay over the blurred background as home screen
+
+?
+Seperate the workload of Analytics, Settings and other things, don't mix up like Village and Families in Settings and other things, there are a few more mix ups in the app, properly do the seperation even if you have to make a few more pages in sidebar?
+Also make a tutorial for the person opening the app for first time with instructions and info and make it interactive type not information type.?
+Change the icons, even app icon, update to new modern icons and make new app icon, take inspiration from the Hermes's staff which is used as a symbol of medicine and a ledger, maybe a book or something, but make the icon centered and keep the other spaces blank like all these icons like what's apps, docs, play store and we need to update the name to proper name to
+
+?
+Make the animations smooth for whole app?
+Make the proper going back setting for going back for gesture sidescreen back method?
+The circle animation of dropdown of expanding the family group in clinic memory page and the background blurring/breaking/becoming wooden animation after tapping on a page on sidebar and other places, and other animations, they are all very very bad, upgrade animations across the page.?
+Settings and all the other pages should look like this similar to my notes app, this send better isn't it:
+
+
+
+?
+Make the whole app uniform in everything.?
+Make every setting useful. Make every function work.

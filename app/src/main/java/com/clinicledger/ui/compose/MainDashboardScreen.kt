@@ -67,7 +67,7 @@ fun MainDashboardScreen(
         topBar = {
             ClinicTopAppBar(
                 title = stringResource(selectedItem.titleRes),
-                subtitle = if (selectedItem == NavItem.LEDGER) "Clinic Ledger OS v2.0" else null
+                subtitle = if (selectedItem == NavItem.LEDGER) "Clinic Ledger OS v3.0" else null
             )
         },
         bottomBar = {
