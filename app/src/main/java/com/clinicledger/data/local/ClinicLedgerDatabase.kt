@@ -95,7 +95,7 @@ abstract class ClinicLedgerDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     ClinicLedgerDatabase::class.java,
-                    "village_clinic_ledger.db"
+                    "clinic_ledger.db"
                 )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {

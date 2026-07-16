@@ -81,13 +81,13 @@ class MainActivity : AppCompatActivity() {
 
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        color = MaterialTheme.colorScheme.background,
                     ) {
                         NavHost(
                             navController = navController,
                             startDestination = Screen.Search.route,
                             enterTransition = { fadeIn() },
-                            exitTransition = { fadeOut() }
+                            exitTransition = { fadeOut() },
                         ) {
                             composable(Screen.Search.route) {
                                 SearchScreen(
@@ -101,24 +101,22 @@ class MainActivity : AppCompatActivity() {
                                     },
                                     onOpenVoiceSheet = {
                                         triggerVoiceAssistant()
-                                    },
-                                    onToggleLanguage = {
-                                        val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
-                                        val nextLang = if (currentLang == "hi") "en" else "hi"
-                                        setLocale(nextLang)
                                     }
-                                )
+                                ) {
+                                    val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
+                                    val nextLang = if (currentLang == "hi") "en" else "hi"
+                                    setLocale(nextLang)
+                                }
                             }
                             composable(Screen.AddPatient.route) {
                                 AddPatientScreen(
                                     viewModel = searchViewModel,
                                     onNavigateBack = {
                                         navController.popBackStack()
-                                    },
-                                    onPatientAdded = {
-                                        navController.popBackStack()
                                     }
-                                )
+                                ) {
+                                    navController.popBackStack()
+                                }
                             }
                             composable(
                                 route = Screen.PatientDetail.route,

@@ -1,7 +1,6 @@
 package com.clinicledger.ui.compose
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,10 +71,10 @@ fun SearchScreen(
     var selectedDrawerItem by remember { mutableStateOf(DrawerItem.LEDGER) }
 
     val villageMap = remember(villages) {
-        villages.associateBy({ it.id }, { LocaleManager.getLocalizedVillage(it.name, it.nameHindi) })
+        villages.associateBy({ it.id }) { LocaleManager.getLocalizedVillage(it.name, it.nameHindi) }
     }
 
-    BackHandler(enabled = (drawerState.isOpen || selectedDrawerItem != DrawerItem.LEDGER)) {
+    BackHandler(enabled = ((drawerState.isOpen) || (selectedDrawerItem != DrawerItem.LEDGER))) {
         if (drawerState.isOpen) {
             scope.launch { drawerState.close() }
         } else {
@@ -92,7 +91,7 @@ fun SearchScreen(
                     selectedDrawerItem = it
                     scope.launch { drawerState.close() }
                 },
-                onToggleLanguage = onToggleLanguage
+                onToggleLanguage = onToggleLanguage,
             )
         }
     ) {
@@ -123,7 +122,7 @@ fun SearchScreen(
                         }
                     },
                     actions = {
-                        if (selectedDrawerItem == DrawerItem.LEDGER || selectedDrawerItem == DrawerItem.ALL_PATIENTS) {
+                        if ((selectedDrawerItem == DrawerItem.LEDGER) || (selectedDrawerItem == DrawerItem.ALL_PATIENTS)) {
                             IconButton(onClick = onOpenVoiceSheet) {
                                 Icon(Icons.Rounded.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.primary)
                             }
@@ -132,7 +131,7 @@ fun SearchScreen(
                 )
             },
             floatingActionButton = {
-                if (selectedDrawerItem == DrawerItem.LEDGER || selectedDrawerItem == DrawerItem.ALL_PATIENTS) {
+                if ((selectedDrawerItem == DrawerItem.LEDGER) || (selectedDrawerItem == DrawerItem.ALL_PATIENTS)) {
                     ExtendedFloatingActionButton(
                         onClick = onNavigateToAddPatient,
                         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },

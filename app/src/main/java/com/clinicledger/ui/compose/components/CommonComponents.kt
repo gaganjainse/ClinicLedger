@@ -41,7 +41,7 @@ fun ClinicTopAppBar(
     actions: @Composable RowScope.() -> Unit = {},
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.background,
-    )
+    ),
 ) {
     val isHindi = LocalIsHindi.current
     val displayTitle = if (isHindi && !titleHindi.isNullOrBlank()) titleHindi else title
@@ -77,7 +77,7 @@ fun ClinicTopAppBar(
         },
         navigationIcon = navigationIcon ?: {},
         actions = actions,
-        colors = colors
+        colors = colors,
     )
 }
 
