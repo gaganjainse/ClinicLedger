@@ -39,6 +39,9 @@ fun SettingsScreen(
     val voiceSpeed by voiceViewModel.voiceSpeed.collectAsState()
     val activeLearningEnabled by voiceViewModel.activeLearningEnabled.collectAsState()
 
+    var showClearDialog by remember { mutableStateOf(false) }
+    var showReseedDialog by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -98,23 +101,13 @@ fun SettingsScreen(
                 subtitle = "Wipe all records (Permanent)",
                 icon = Icons.Rounded.DeleteForever,
                 color = MaterialTheme.colorScheme.error,
-                onClick = {
-                    scope.launch {
-                        DataSeeder.clearAllData(context)
-                        Toast.makeText(context, "Database cleared", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                onClick = { showClearDialog = true }
             )
             SettingsItem(
                 title = stringResource(R.string.settings_reseed_demo),
                 subtitle = "Load realistic medical data",
                 icon = Icons.Rounded.RestartAlt,
-                onClick = {
-                    scope.launch {
-                        DataSeeder.seedDemoDataForce(context)
-                        Toast.makeText(context, "Demo data loaded", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                onClick = { showReseedDialog = true }
             )
         }
 
@@ -136,6 +129,51 @@ fun SettingsScreen(
         }
         
         item { Spacer(modifier = Modifier.height(100.dp)) }
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.clear_confirm_title)) },
+            text = { Text(stringResource(R.string.clear_confirm_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            DataSeeder.clearAllData(context)
+                            showClearDialog = false
+                            android.widget.Toast.makeText(context, "Database cleared", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text(stringResource(R.string.clear_confirm_yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+
+    if (showReseedDialog) {
+        AlertDialog(
+            onDismissRequest = { showReseedDialog = false },
+            title = { Text(stringResource(R.string.demo_confirm_title)) },
+            text = { Text(stringResource(R.string.demo_confirm_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            DataSeeder.seedDemoDataForce(context)
+                            showReseedDialog = false
+                            android.widget.Toast.makeText(context, "Demo data loaded", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) { Text(stringResource(R.string.demo_confirm_yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReseedDialog = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
     }
 }
 

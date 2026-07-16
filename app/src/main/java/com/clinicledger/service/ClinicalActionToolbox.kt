@@ -19,6 +19,14 @@ class ClinicalActionToolbox(
 ) {
     private val briefingService = BriefingService(context)
     private val routineTool = RoutineTool(this)
+    private val llamaService = LlamaInferenceService(context)
+
+    /**
+     * Executes a complex reasoning task via local LLM.
+     */
+    suspend fun getDeepReasoning(prompt: String): String {
+        return llamaService.chat(prompt)
+    }
 
     /**
      * Executes a pre-defined clinical routine.

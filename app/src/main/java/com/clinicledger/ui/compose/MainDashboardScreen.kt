@@ -9,12 +9,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.clinicledger.R
+import com.clinicledger.data.repository.PatientRepository
 import com.clinicledger.ui.analytics.viewmodel.AnalyticsViewModel
 import com.clinicledger.ui.compose.components.ClinicTopAppBar
+import com.clinicledger.ui.compose.tabs.ClinicMemoryTab
 import com.clinicledger.ui.search.viewmodel.SearchViewModel
 import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 
@@ -25,6 +28,7 @@ import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 enum class NavItem(val icon: androidx.compose.ui.graphics.vector.ImageVector, val labelRes: Int, val titleRes: Int) {
     LEDGER(Icons.AutoMirrored.Rounded.ListAlt, R.string.nav_ledger, R.string.app_name),
     ANALYTICS(Icons.Rounded.BarChart, R.string.nav_analytics, R.string.analytics_title),
+    MEMORY(Icons.Rounded.Psychology, R.string.tab_memory, R.string.clinic_memory_os),
     VILLAGES(Icons.Rounded.Cabin, R.string.nav_villages, R.string.villages_title),
     SETTINGS(Icons.Rounded.Settings, R.string.nav_settings, R.string.settings_title)
 }
@@ -45,6 +49,7 @@ fun MainDashboardScreen(
     onOpenVoiceSheet: () -> Unit,
     onToggleLanguage: () -> Unit,
 ) {
+    val context = LocalContext.current
     var selectedItem by rememberSaveable { mutableStateOf(NavItem.LEDGER) }
     val isHindi = LocalIsHindi.current
 
@@ -54,6 +59,7 @@ fun MainDashboardScreen(
     val totalCollectedToday by viewModel.totalCollectedToday.observeAsState(0.0)
     val allPatients by viewModel.allPatients.observeAsState(emptyList())
     val familyGroups by viewModel.familyGroups.observeAsState(emptyList())
+    val villages by viewModel.villages.observeAsState(emptyList())
     
     var searchQuery by remember { mutableStateOf("") }
 
@@ -125,6 +131,18 @@ fun MainDashboardScreen(
                     viewModel = analyticsViewModel,
                     onNavigateToPatientDetail = onNavigateToDetail
                 )
+                NavItem.MEMORY -> {
+                    val repository = remember { PatientRepository(context) }
+                    val villageMap = remember(villages) { villages.associate { it.id to it.name } }
+                    
+                    ClinicMemoryTab(
+                        repository = repository,
+                        onNavigateToDetail = onNavigateToDetail,
+                        villages = villages,
+                        familyGroups = familyGroups,
+                        villageMap = villageMap
+                    )
+                }
                 NavItem.VILLAGES -> VillageManagementContent()
                 NavItem.SETTINGS -> SettingsScreen(
                     onToggleLanguage = onToggleLanguage,
