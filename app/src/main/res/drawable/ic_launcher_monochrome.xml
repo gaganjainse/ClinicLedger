@@ -5,21 +5,49 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Themed Icon uses path alphas for depth -->
-    <!-- Ledger Base -->
+    <!-- Open Ledger / Book in the background -->
     <path
         android:fillColor="#000000"
-        android:fillAlpha="0.3"
+        android:fillAlpha="0.2"
         android:pathData="M54,42 L28,42 C25,42 24,44 24,48 L24,76 C24,80 25,82 28,82 L54,82 Z" />
     <path
         android:fillColor="#000000"
-        android:fillAlpha="0.5"
+        android:fillAlpha="0.4"
         android:pathData="M54,42 L80,42 C83,42 84,44 84,48 L84,76 C84,80 83,82 80,82 L54,82 Z" />
+
+    <!-- Left Book lines -->
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M30,50 h16 v3 h-16 z" />
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M30,58 h12 v3 h-12 z" />
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M30,66 h18 v3 h-18 z" />
+
+    <!-- Right Book lines -->
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M62,50 h16 v3 h-16 z" />
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M62,58 h14 v3 h-14 z" />
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.6"
+        android:pathData="M62,66 h10 v3 h-10 z" />
 
     <!-- Staff -->
     <path
         android:fillColor="#000000"
         android:pathData="M52.5,24 h3 v58 h-3 z" />
+
     <path
         android:fillColor="#000000"
         android:pathData="M54,20 A3.5,3.5 0 1 1 53.9,20" />
@@ -27,11 +55,9 @@
     <!-- Wings -->
     <path
         android:fillColor="#000000"
-        android:fillAlpha="0.8"
         android:pathData="M54,26 C43,21 34,26 31,34 C37,35 46,31 54,30 Z" />
     <path
         android:fillColor="#000000"
-        android:fillAlpha="0.8"
         android:pathData="M54,26 C65,21 74,26 77,34 C71,35 62,31 54,30 Z" />
 
     <!-- Snakes -->
@@ -48,8 +74,12 @@
         android:fillColor="#00000000"
         android:pathData="M62,74 C62,68 46,66 46,60 C46,54 62,52 62,46 C62,40 46,38 46,34" />
 
-    <!-- Heads -->
-    <path android:fillColor="#000000" android:pathData="M60,34 A2,2 0 1 1 59.9,34" />
-    <path android:fillColor="#000000" android:pathData="M48,34 A2,2 0 1 1 47.9,34" />
+    <!-- Snake heads -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M60,34 A2,2 0 1 1 59.9,34" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M48,34 A2,2 0 1 1 47.9,34" />
 
 </vector>

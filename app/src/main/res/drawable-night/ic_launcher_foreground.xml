@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:name="center_group"
+        android:translateX="54"
+        android:translateY="54">
+
+        <!-- Open Ledger / Book (Luminous Dark Flux) -->
+        <!-- Left Side Base -->
+        <path
+            android:pathData="M0,-24 L-22,-24 C-26,-24 -28,-22 -28,-18 L-28,24 C-28,28 -26,30 -22,30 L0,30 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="-28" android:startY="-24"
+                    android:endX="0" android:endY="30"
+                    android:type="linear">
+                    <item android:offset="0" android:color="#FF0EA5E9" />
+                    <item android:offset="1" android:color="#FF0C4A6E" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- Right Side Base -->
+        <path
+            android:pathData="M0,-24 L22,-24 C26,-24 28,-22 28,-18 L28,24 C28,28 26,30 22,30 L0,30 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="0" android:startY="-24"
+                    android:endX="28" android:endY="30"
+                    android:type="linear">
+                    <item android:offset="0" android:color="#FF38BDF8" />
+                    <item android:offset="1" android:color="#FF0EA5E9" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Glossy Reflection (Luminous) -->
+        <path
+            android:pathData="M-28,-24 L28,-24 L28,-5 L-28,-5 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="0" android:startY="-24"
+                    android:endX="0" android:endY="-5"
+                    android:type="linear">
+                    <item android:offset="0" android:color="#88FFFFFF" />
+                    <item android:offset="1" android:color="#00FFFFFF" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Caduceus Symbol -->
+        <!-- Staff -->
+        <path
+            android:pathData="M-1.5,-32 h3 v64 h-3 z"
+            android:fillColor="#FBBF24" />
+
+        <!-- Wings -->
+        <group>
+            <path
+                android:pathData="M0,-28 C-12,-34 -22,-28 -24,-18 C-18,-17 -8,-22 0,-24 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="-24" android:startY="-34"
+                        android:endX="0" android:endY="-18"
+                        android:type="linear">
+                        <item android:offset="0" android:color="#FFFBBF24" />
+                        <item android:offset="1" android:color="#FFFFD700" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path
+                android:pathData="M0,-28 C12,-34 22,-28 24,-18 C18,-17 8,-22 0,-24 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="0" android:startY="-34"
+                        android:endX="24" android:endY="-18"
+                        android:type="linear">
+                        <item android:offset="0" android:color="#FFFBBF24" />
+                        <item android:offset="1" android:color="#FFFFD700" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+        </group>
+
+        <!-- Snakes (Brighter Cyan Neon) -->
+        <path
+            android:strokeColor="#67E8F9"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M-10,20 C-10,12 10,10 10,2 C10,-6 -10,-8 -10,-16 C-10,-24 10,-26 10,-30" />
+        <path
+            android:strokeColor="#67E8F9"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M10,20 C10,12 -10,10 -10,2 C-10,-6 10,-8 10,-16 C10,-24 -10,-26 -10,-30" />
+
+        <!-- Luminous Glow Accents -->
+        <path
+            android:pathData="M8,-29 a1.5,1.5 0 1,1 -3,0 a1.5,1.5 0 1,1 3,0"
+            android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M-5,-29 a1.5,1.5 0 1,1 -3,0 a1.5,1.5 0 1,1 3,0"
+            android:fillColor="#FFFFFF" />
+
+    </group>
+</vector>
