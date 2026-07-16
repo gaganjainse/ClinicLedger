@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
                                     },
                                     onOpenVoiceSheet = {
                                         triggerVoiceAssistant()
-                                    }
+                                    },
                                 ) {
                                     val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
                                     val nextLang = if (currentLang == "hi") "en" else "hi"

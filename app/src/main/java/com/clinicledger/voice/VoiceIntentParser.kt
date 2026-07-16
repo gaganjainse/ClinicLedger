@@ -44,7 +44,7 @@ object VoiceIntentParser {
             villageName = villageName,
             medicineAmount = medicineAmount,
             paymentAmount = paymentAmount,
-            confidence = if (intent != IntentType.UNKNOWN) 0.9f else 0.2f
+            confidence = if (intent != IntentType.UNKNOWN) 0.9f else 0.2f,
         )
     }
 
@@ -179,7 +179,7 @@ object VoiceIntentParser {
                         )
                         villageKeys.contains(w)
                     }
-                    w.length >= 2 && !w.all { it.isDigit() } && !isHindiNumberWord(w) && !isVil && !isStopWord(w)
+                    (w.length >= 2 && !w.all { it.isDigit() } && !isHindiNumberWord(w) && !isVil && !isStopWord(w))
                 }
                 
                 if (words.isNotEmpty()) {
@@ -300,9 +300,8 @@ object VoiceIntentParser {
         }
         if (currentGroupWords.isNotEmpty()) {
             val groupStr = currentGroupWords.joinToString(" ")
-            val parsed = parseGroupString(groupStr)
-            if (parsed != null) {
-                groups.add(NumberGroup(parsed, startIdx, words.size - 1))
+            parseGroupString(groupStr)?.let {
+                groups.add(NumberGroup(it, startIdx, words.size - 1))
             }
         }
         return groups

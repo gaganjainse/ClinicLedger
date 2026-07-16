@@ -42,7 +42,7 @@ object DataSeeder {
                     Pair("Shyosinghpura", "श्योसिंघपुरा"),
                     Pair("Mandaliya", "मंडालिया"),
                     Pair("Nala", "नला"),
-                    Pair("Piplya", "पीपल्या")
+                    Pair("Piplya", "पीपल्या"),
                 )
                 for (v in seedVillages) {
                     db.execSQL("INSERT OR IGNORE INTO villages (name, name_hindi) VALUES ('${v.first}', '${v.second}')")
@@ -72,7 +72,14 @@ object DataSeeder {
                 casteHin = "शर्मा",
                 villageName = "Siras",
                 members = listOf(
-                    SeedMember("Sitaram Sharma", "सीताराम शर्मा", "Grandfather", "दादाजी", true, "Sitaram"),
+                    SeedMember(
+                        nameEng = "Sitaram Sharma",
+                        nameHin = "सीताराम शर्मा",
+                        relationshipEng = "Grandfather",
+                        relationshipHin = "दादाजी",
+                        isMale = true,
+                        alias = "Sitaram"
+                    ),
                     SeedMember("Saraswati Sharma", "सरस्वती शर्मा", "Grandmother", "दादीजी", false),
                     SeedMember("Ramesh Sharma", "रमेश शर्मा", "Father", "पिताजी", true, "Ramesh"),
                     SeedMember("Sunita Sharma", "सुनीता शर्मा", "Mother", "माताजी", false),
@@ -212,7 +219,7 @@ object DataSeeder {
 
             for (m in fam.members) {
                 val phonePrefix = listOf("98", "99", "97", "89", "88", "76", "77", "94")
-                val phone = phonePrefix[random.nextInt(phonePrefix.size)] + String.format("%08d", random.nextInt(100000000))
+                val phone = phonePrefix[random.nextInt(phonePrefix.size)] + String.format(java.util.Locale.US, "%08d", random.nextInt(100000000))
                 val patientName = "${m.nameEng} / ${m.nameHin}"
                 val relationship = "${m.relationshipEng} / ${m.relationshipHin}"
 
@@ -316,7 +323,7 @@ object DataSeeder {
         val numTransactions = random.nextInt(5) // 0 to 4 transactions
         if (numTransactions > 0) {
             var runningBalance = 0.0
-            for (t in 1..numTransactions) {
+            for (_unused in 1..numTransactions) {
                 val daysAgo = random.nextInt(90)
                 val transactionDate = getRandomDateInPast(random, daysAgo)
 
@@ -371,9 +378,9 @@ object DataSeeder {
         if (maxDaysAgo > 0) {
             calendar.add(Calendar.DAY_OF_YEAR, -random.nextInt(maxDaysAgo))
         }
-        calendar.set(Calendar.HOUR_OF_DAY, random.nextInt(24))
-        calendar.set(Calendar.MINUTE, random.nextInt(60))
-        calendar.set(Calendar.SECOND, random.nextInt(60))
+        calendar[Calendar.HOUR_OF_DAY] = random.nextInt(24)
+        calendar[Calendar.MINUTE] = random.nextInt(60)
+        calendar[Calendar.SECOND] = random.nextInt(60)
         return calendar.time
     }
 
@@ -412,7 +419,6 @@ object DataSeeder {
             database.villageDao().deleteAll()
         }
         // Re-seed empty default villages
-        val villageDao = database.villageDao()
         val seedVillages = listOf(
             Pair("Siras", "सिरस"),
             Pair("Mehtabpura", "मेहताबपुरा"),

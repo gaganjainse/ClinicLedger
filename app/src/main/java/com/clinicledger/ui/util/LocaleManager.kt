@@ -25,16 +25,6 @@ object LocaleManager {
         prefs.edit { putString(KEY_LANG, lang) }
     }
 
-    fun applyLocale(context: Context): Context {
-        val lang = getSavedLocale(context)
-        val locale = Locale.forLanguageTag(lang)
-        Locale.setDefault(locale)
-
-        val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        return context.createConfigurationContext(config)
-    }
-
     fun applyLocaleLegacy(context: Context) {
         val lang = getSavedLocale(context)
         val locale = Locale.forLanguageTag(lang)
@@ -109,16 +99,6 @@ object LocaleManager {
             "adjustment" -> if (isHindi) "समायोजन" else "Balance Adjustment"
             else -> type
         }
-    }
-
-    /**
-     * Formats a date relative to now (e.g., "5 days ago" or "5 दिन पहले").
-     */
-    fun formatRelativeDate(date: java.util.Date): String {
-        val isHindi = Locale.getDefault().language == "hi"
-        val diffMs = java.util.Date().time - date.time
-        val days = diffMs / (1000 * 60 * 60 * 24)
-        return if (isHindi) "$days दिन पहले" else "$days days ago"
     }
 
     /**
