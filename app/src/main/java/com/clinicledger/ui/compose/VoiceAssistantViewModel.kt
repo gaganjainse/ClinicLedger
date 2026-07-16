@@ -3,6 +3,7 @@ package com.clinicledger.ui.compose
 import android.app.Application
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.clinicledger.data.local.ClinicLedgerDatabase
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * States for the voice interaction state machine.
@@ -74,7 +76,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
     init {
         tts = TextToSpeech(application) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("hi", "IN")
+                tts?.language = Locale.forLanguageTag("hi-IN")
                 // Automatic pacing based on habit learning
                 val preferredSpeed = styleMapper.getPrimaryStyle().let {
                     if (it == "FAST") 1.2f else 1.0f
@@ -151,7 +153,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
         onNavigateToPatientDetail: (Long) -> Unit,
         onNavigateToAnalytics: (Long?) -> Unit,
         onRunRoutine: (String) -> Unit,
-        onDone: () -> Unit
+        onDone: () -> Unit,
     ) {
         val intent = _parsedIntent.value ?: return
         viewModelScope.launch {
@@ -160,7 +162,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
             withContext(Dispatchers.IO) {
                 when (intent.intent) {
                     IntentType.SUMMARY -> {
-                        val summary = toolbox.getSummary(true)
+                        val summary = toolbox.getSummary(isHindi = true)
                         withContext(Dispatchers.Main) {
                             tts?.speak(summary, TextToSpeech.QUEUE_FLUSH, null, null)
                             _transcript.value = summary
@@ -179,7 +181,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
                     }
                     else -> {
                         val targetId = confirmedPatientId ?: if (!intent.patientName.isNullOrBlank()) {
-                            repository.getPatientByName(intent.patientName!!)?.id
+                            repository.getPatientByName(intent.patientName)?.id
                         } else null
 
                         if (targetId != null) {
@@ -201,7 +203,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
             styleMapper.learnStyle(intent.intent.name)
             
             _state.value = ConversationState.DONE
-            delay(2000)
+            delay(2000.milliseconds)
             onDone()
         }
     }
@@ -212,12 +214,12 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
     fun setVoiceSpeed(speed: Float) {
         _voiceSpeed.value = speed
         tts?.setSpeechRate(speed)
-        prefs.edit().putFloat("voice_speed", speed).apply()
+        prefs.edit { putFloat("voice_speed", speed) }
     }
 
     fun setActiveLearningEnabled(enabled: Boolean) {
         _activeLearningEnabled.value = enabled
-        prefs.edit().putBoolean("learning_enabled", enabled).apply()
+        prefs.edit { putBoolean("learning_enabled", enabled) }
     }
 
     /**
@@ -229,7 +231,7 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
             viewModelScope.launch {
                 skillService.acquireSkill(phrase.lowercase(), toolId)
                 _state.value = ConversationState.DONE
-                delay(800)
+                delay(800.milliseconds)
                 reset()
             }
         }
@@ -250,7 +252,6 @@ class VoiceAssistantViewModel(application: Application) : AndroidViewModel(appli
     }
 
     override fun onCleared() {
-        super.onCleared()
         tts?.stop()
         tts?.shutdown()
     }

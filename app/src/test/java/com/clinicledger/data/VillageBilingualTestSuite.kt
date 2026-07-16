@@ -1,9 +1,7 @@
 package com.clinicledger.data
 
-import com.clinicledger.data.models.Village
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.lang.reflect.Method
 
 /**
  * Tests for the bilingual translation logic in VillageRepository.
@@ -23,7 +21,7 @@ class VillageBilingualTestSuite {
             "बस्सी" to ("बस्सी" to "बस्सी"),
             "Mehtabpura / " to ("Mehtabpura" to "Mehtabpura"), // Smarter fallback
             " / मेहताबपुरा" to ("मेहताबपुरा" to "मेहताबपुरा"),
-            "Nala/नला" to ("Nala" to "नला")
+            "Nala/नला" to ("Nala" to "नला"),
         )
 
         testCases.forEach { (input, expected) ->
@@ -40,10 +38,10 @@ class VillageBilingualTestSuite {
             if (parts.size >= 2) {
                 val eng = parts[0]
                 val hin = parts[1]
-                return (if (eng.isEmpty()) hin else eng) to (if (hin.isEmpty()) eng else hin)
+                return (eng.ifEmpty { hin }) to (hin.ifEmpty { eng })
             }
         }
-        val hasHindi = rawName.any { it in '\u0900'..'\u097F' }
+        val hasHindi = rawName.any { (it in '\u0900'..'\u097F') }
         return if (hasHindi) rawName to rawName else rawName to ""
     }
 }

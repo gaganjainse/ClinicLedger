@@ -1,8 +1,8 @@
 package com.clinicledger.data
 
 import com.clinicledger.data.models.Transaction
-import com.clinicledger.data.models.Patient
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -20,14 +20,16 @@ class LedgerCalculationLargeTestSuite {
         // Simulate 200 mixed transactions
         for (i in 1..200) {
             val amount = (i * 10).toDouble()
-            val type = if (i % 3 == 0) "payment" else "medicine"
+            val type = if ((i % 3) == 0) "payment" else "medicine"
             
-            transactions.add(Transaction(
-                id = i.toLong(),
-                patientId = patientId,
-                type = type,
-                amount = amount
-            ))
+            transactions.add(
+                Transaction(
+                    id = i.toLong(),
+                    patientId = patientId,
+                    type = type,
+                    amount = amount,
+                )
+            )
             
             if (type == "medicine") expectedBalance += amount else expectedBalance -= amount
         }
@@ -43,10 +45,8 @@ class LedgerCalculationLargeTestSuite {
 
     @Test
     fun testDebtAgedBuckets() {
-        // This would normally test the repository query logic, but we can test the helper utils here if any
-        // Since we are using Room Queries, we'll verify the intent of the logic
         val balance = 5000.0
         val isDebt = balance > 0
-        assertEquals(true, isDebt)
+        assertTrue(isDebt)
     }
 }

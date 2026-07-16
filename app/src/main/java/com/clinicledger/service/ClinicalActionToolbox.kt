@@ -13,9 +13,9 @@ import java.util.*
  * Renamed to ClinicalActionToolbox for better clarity in the service layer.
  */
 class ClinicalActionToolbox(
-    private val context: Context,
+    context: Context,
     private val patientRepository: PatientRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
 ) {
     private val briefingService = BriefingService(context)
     private val routineTool = RoutineTool(this)

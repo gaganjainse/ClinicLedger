@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,9 +30,9 @@ fun SystemDiagnosticHub(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val db = remember { ClinicLedgerDatabase.getDatabase(context) }
     
-    var patientCount by remember { mutableStateOf(0) }
-    var transactionCount by remember { mutableStateOf(0) }
-    var villageCount by remember { mutableStateOf(0) }
+    var patientCount by remember { mutableIntStateOf(0) }
+    var transactionCount by remember { mutableIntStateOf(0) }
+    var villageCount by remember { mutableIntStateOf(0) }
     var dbPath by remember { mutableStateOf("Unknown") }
 
     LaunchedEffect(Unit) {
@@ -48,7 +47,7 @@ fun SystemDiagnosticHub(modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "db_engine") {
             DiagnosticCard(

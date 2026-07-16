@@ -48,12 +48,12 @@ fun PatientRegistrationScreen(
     var phone by remember { mutableStateOf("") }
     var selectedVillage by remember { mutableStateOf<Village?>(null) }
     var relationship by remember { mutableStateOf("Self") }
-    var relationshipExpanded by remember { mutableStateOf(false) }
-    var villageExpanded by remember { mutableStateOf(false) }
+    var relationshipExpanded by remember { mutableStateOf(value = false) }
+    var villageExpanded by remember { mutableStateOf(value = false) }
 
     ClinicScaffold(
         title = if (isHindi) "नया पंजीकरण" else "New Registration",
-        onBack = onNavigateBack
+        onBack = onNavigateBack,
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -160,7 +160,7 @@ fun PatientRegistrationScreen(
                         onPatientAdded()
                     }
                 },
-                enabled = name.isNotBlank() && selectedVillage != null,
+                enabled = (name.isNotBlank() && selectedVillage != null),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

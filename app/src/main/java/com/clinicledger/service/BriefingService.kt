@@ -4,58 +4,33 @@ import android.content.Context
 import com.clinicledger.data.local.ClinicLedgerDatabase
 import com.clinicledger.ui.util.DateTimeUtils
 import com.clinicledger.ui.util.LocaleManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
- * Generates natural language summaries of the clinic's performance.
- * Works purely locally by querying the SQLite database.
+ * Service to generate human-readable spoken summaries of clinical data.
  */
-class BriefingService(private val context: Context) {
+class BriefingService(context: Context) {
     private val database = ClinicLedgerDatabase.getDatabase(context)
     private val transactionDao = database.transactionDao()
     private val patientDao = database.patientDao()
 
     /**
-     * Generates a summary for the current day.
-     * Output format: "Doctor, today we collected ₹X from Y patients. Highest due is ₹Z from [Name]."
+     * Generates a spoken daily summary.
      */
-    suspend fun getDailySummary(isHindi: Boolean): String = withContext(Dispatchers.IO) {
-        val today = DateTimeUtils.getStartOfDay()
-        val txs = transactionDao.getAllTransactionsSync().filter { it.createdAt.after(today) }
+    suspend fun getDailySummary(isHindi: Boolean): String {
+        val todayStart = DateTimeUtils.getStartOfDay()
+        val txs = transactionDao.getTransactionsSinceSync(todayStart)
         
-        val collected = txs.filter { it.type == "payment" }.sumOf { it.amount }
-        val medicine = txs.filter { it.type == "medicine" }.sumOf { it.amount }
-        val patientCount = txs.map { it.patientId }.distinct().size
+        val collected = txs.asSequence().filter { it.type == "payment" }.sumOf { it.amount }
+        val patientCount = txs.asSequence().map { it.patientId }.distinct().count()
         
-        val topPatient = patientDao.getAllPatientsSync().maxByOrNull { it.currentBalance }
+        val topDebtor = patientDao.getAllPatientsSync().maxByOrNull { it.currentBalance }
 
-        if (isHindi) {
-            buildString {
-                append("डॉक्टर साहब, आज का हिसाब इस प्रकार है। ")
-                append("आज आपने $patientCount मरीजों को देखा। ")
-                if (collected > 0) append("${LocaleManager.formatAmount(collected)} रुपये जमा हुए। ")
-                if (medicine > 0) append("${LocaleManager.formatAmount(medicine)} रुपये की दवा दी गई। ")
-                topPatient?.let {
-                    if (it.currentBalance > 0) {
-                        append("सबसे ज्यादा बकाया ${LocaleManager.formatPatientName(it.name)} का है, ")
-                        append("जो कि ${LocaleManager.formatAmount(it.currentBalance)} रुपये है।")
-                    }
-                }
-            }
+        return if (isHindi) {
+            "डॉक्टर साहब, आज हमने $patientCount मरीजों से ${LocaleManager.formatCurrency(collected)} रुपये वसूले हैं। " +
+            (topDebtor?.let { "सबसे ज्यादा बकाया ${it.name.split(" / ").first()} का है, जो ${LocaleManager.formatCurrency(it.currentBalance)} रुपये है।" } ?: "")
         } else {
-            buildString {
-                append("Doctor, here is today's summary. ")
-                append("You saw $patientCount patients today. ")
-                append("Collected: ${LocaleManager.formatCurrency(collected)}. ")
-                append("Medicine given: ${LocaleManager.formatCurrency(medicine)}. ")
-                topPatient?.let {
-                    if (it.currentBalance > 0) {
-                        append("Highest pending is ${LocaleManager.formatPatientName(it.name)} ")
-                        append("with ${LocaleManager.formatCurrency(it.currentBalance)}.")
-                    }
-                }
-            }
+            "Doctor, today we collected ${LocaleManager.formatCurrency(collected)} from $patientCount patients. " +
+            (topDebtor?.let { "Highest due is ${LocaleManager.formatCurrency(it.currentBalance)} from ${it.name.split(" / ").first()}." } ?: "")
         }
     }
 }

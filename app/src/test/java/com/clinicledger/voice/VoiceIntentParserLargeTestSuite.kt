@@ -26,12 +26,12 @@ class VoiceIntentParserLargeTestSuite {
         "hisaab saaf karo, , , CORRECTION",
         "kitna paisa baki hai, , , SEARCH_BALANCE",
         "tees rupaye diye, , 30.0, PAYMENT",
-        "pachas rupaye ki dawa, , 50.0, MEDICINE"
+        "pachas rupaye ki dawa, , 50.0, MEDICINE",
     )
     fun testIntentDetection(phrase: String, expectedName: String?, expectedAmount: Double?, expectedIntent: IntentType) {
         val result = VoiceIntentParser.parse(phrase)
         assertEquals(expectedIntent, result.intent)
-        if (expectedName != null) assertEquals(expectedName, result.patientName)
+        expectedName?.let { assertEquals(it, result.patientName) }
         if (expectedAmount != null) {
             val actual = if (expectedIntent == IntentType.PAYMENT) result.paymentAmount else result.medicineAmount
             assertEquals(expectedAmount, actual ?: 0.0, 0.01)
@@ -46,7 +46,7 @@ class VoiceIntentParserLargeTestSuite {
         "dedh sau, 150.0",
         "dhai sau, 250.0",
         "sade teen sau, 350.0",
-        "paune do sau, 175.0"
+        "paune do sau, 175.0",
     )
     fun testHindiNumberParsing(phrase: String, expected: Double) {
         val groups = VoiceIntentParser.findNumberGroups(phrase)
@@ -63,14 +63,14 @@ class VoiceIntentParserLargeTestSuite {
             "rokda" to IntentType.PAYMENT,
             "paisa" to IntentType.PAYMENT,
             "hisaab" to IntentType.SEARCH_BALANCE,
-            "khata" to IntentType.SEARCH_BALANCE
+            "khata" to IntentType.SEARCH_BALANCE,
         )
         
         val names = listOf("Ramesh", "Suresh", "Manoj", "Sita", "Gita", "Bablu", "Chotu")
         val amounts = listOf("100", "200", "500", "1000")
         
         for (name in names) {
-            for ((keyword, intent) in dialects) {
+            for ((keyword, _) in dialects) {
                 for (amount in amounts) {
                     val phrase = "$name $amount $keyword"
                     val result = VoiceIntentParser.parse(phrase)
@@ -93,7 +93,7 @@ class VoiceIntentParserLargeTestSuite {
     fun testVillageExtraction() {
         val villages = listOf(
             com.clinicledger.data.models.Village(1, "Siras", "सिरस"),
-            com.clinicledger.data.models.Village(2, "Jhilai", "झिलाई")
+            com.clinicledger.data.models.Village(2, "Jhilai", "झिलाई"),
         )
         assertEquals("Siras", VoiceIntentParser.extractVillageName("Ramesh Siras se", villages))
         assertEquals("Jhilai", VoiceIntentParser.extractVillageName("Suresh jhilai wala", villages))

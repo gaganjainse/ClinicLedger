@@ -47,7 +47,7 @@ fun LedgerSearchHub(
             MorningBriefSection(
                 allPatients = allPatients,
                 familyGroups = familyGroups,
-                totalCollectedToday = totalCollectedToday
+                totalCollectedToday = totalCollectedToday,
             )
         }
 

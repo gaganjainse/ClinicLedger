@@ -9,7 +9,7 @@ import com.clinicledger.data.local.PatientDao
  */
 class SemanticResolver(
     private val knowledgeDao: ClinicKnowledgeDao,
-    private val patientDao: PatientDao
+    private val patientDao: PatientDao,
 ) {
     /**
      * Attempts to find a Patient ID based on a relationship query.

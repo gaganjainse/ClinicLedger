@@ -12,7 +12,10 @@ import kotlinx.coroutines.withContext
  */
 class SystemGuardian(context: Context) {
     private val database = ClinicLedgerDatabase.getDatabase(context)
-    private val TAG = "SystemGuardian"
+
+    companion object {
+        private const val TAG = "SystemGuardian"
+    }
 
     /**
      * Performs a full system health check.

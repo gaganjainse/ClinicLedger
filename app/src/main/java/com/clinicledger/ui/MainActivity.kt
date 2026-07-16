@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity() {
                                         val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
                                         val nextLang = if (currentLang == "hi") "en" else "hi"
                                         setLocale(nextLang)
-                                    }
+                                    },
                                 )
                             }
                             

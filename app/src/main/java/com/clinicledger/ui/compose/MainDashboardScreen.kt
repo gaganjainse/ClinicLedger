@@ -43,7 +43,7 @@ fun MainDashboardScreen(
     onNavigateToDiagnostics: () -> Unit,
     onNavigateToAbout: () -> Unit,
     onOpenVoiceSheet: () -> Unit,
-    onToggleLanguage: () -> Unit
+    onToggleLanguage: () -> Unit,
 ) {
     var selectedItem by rememberSaveable { mutableStateOf(NavItem.LEDGER) }
     val isHindi = LocalIsHindi.current

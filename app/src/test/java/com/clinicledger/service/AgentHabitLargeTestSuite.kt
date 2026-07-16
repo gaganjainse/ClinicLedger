@@ -25,7 +25,6 @@ class AgentHabitLargeTestSuite {
 
     @Test
     fun testStyleInference() {
-        val styles = listOf("FAST", "NORMAL", "SLOW")
         val observations = listOf("FAST", "FAST", "FAST", "NORMAL", "FAST")
         
         val primary = observations.groupBy { it }.maxByOrNull { it.value.size }?.key

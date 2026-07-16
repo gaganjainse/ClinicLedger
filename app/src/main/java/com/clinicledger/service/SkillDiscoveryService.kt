@@ -5,31 +5,35 @@ import com.clinicledger.data.models.LearnedSkill
 import java.util.*
 
 /**
- * Learns new "Skills" (Dialect -> Action mappings) based on user corrections.
+ * Service to manage the Agent's learning loop.
  */
 class SkillDiscoveryService(private val learnedSkillDao: LearnedSkillDao) {
+
     /**
-     * Records that a specific phrase was manually corrected to a specific tool action.
+     * Records a new skill or reinforces an existing one.
      */
     suspend fun acquireSkill(phrase: String, toolId: String) {
         val existing = learnedSkillDao.getSkillByPhrase(phrase)
         if (existing != null) {
-            learnedSkillDao.updateSkill(existing.copy(
-                toolId = toolId,
-                useCount = existing.useCount + 1,
-                lastUsedAt = Date()
-            ))
+            learnedSkillDao.updateSkill(
+                existing.copy(
+                    useCount = existing.useCount + 1,
+                    lastUsedAt = Date(),
+                )
+            )
         } else {
-            learnedSkillDao.insertSkill(LearnedSkill(
-                triggerPhrase = phrase,
-                toolId = toolId,
-                confidence = 0.8f // Starts at 80% if taught manually
-            ))
+            learnedSkillDao.insertSkill(
+                LearnedSkill(
+                    triggerPhrase = phrase,
+                    toolId = toolId,
+                    confidence = 1.0f,
+                )
+            )
         }
     }
 
     /**
-     * Attempts to find a learned tool for a specific phrase.
+     * Looks up a tool ID for a given phrase.
      */
     suspend fun lookupLearnedTool(phrase: String): String? {
         val skill = learnedSkillDao.getSkillByPhrase(phrase)

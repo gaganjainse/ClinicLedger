@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.clinicledger.ui.compose.components.ClinicScaffold
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 data class DiagnosticNode(
     val id: String,
@@ -30,7 +30,7 @@ data class DiagnosticNode(
     val x: Float,
     val y: Float,
     val metrics: Map<String, String>,
-    val logs: List<String>
+    val logs: List<String>,
 )
 
 /**
@@ -43,7 +43,7 @@ fun ArchitecturalDiagnosticHub(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var isSyncing by remember { mutableStateOf(false) }
+    var isSyncing by remember { mutableStateOf(value = false) }
     var selectedNodeId by remember { mutableStateOf("DB") }
     
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -72,7 +72,7 @@ fun ArchitecturalDiagnosticHub(
                 onClick = { 
                     isSyncing = true
                     scope.launch {
-                        delay(2000)
+                        delay(2000.milliseconds)
                         isSyncing = false
                     }
                 },
@@ -102,7 +102,7 @@ fun ArchitecturalDiagnosticHub(
                     val dashPathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                     
                     // Draw connections
-                    for (i in 0 until nodes.size - 1) {
+                    for (i in 0 until (nodes.size - 1)) {
                         val start = nodes[i]
                         val end = nodes[i+1]
                         drawLine(
@@ -154,7 +154,7 @@ fun DiagnosticNodeView(node: DiagnosticNode, isSelected: Boolean, onSelect: () -
         modifier = Modifier
             .offset(x = node.x.dp / 2, y = node.y.dp / 2) // Scaled for density
             .width(140.dp)
-            .clickable { onSelect() },
+            .clickable(onClick = onSelect),
         shape = RoundedCornerShape(12.dp),
         color = Color(0xFF0F172A),
         border = androidx.compose.foundation.BorderStroke(2.dp, color)

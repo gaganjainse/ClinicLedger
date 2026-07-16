@@ -25,7 +25,7 @@ class FamilyTreeLargeTestSuite {
             createMember("Kalu", "Chacha"),
             createMember("Meera", "Chachi"),
             createMember("Beti", "Daughter"),
-            createMember("Nana", "Naana")
+            createMember("Nana", "Naana"),
         )
 
         val generations = useCase(members)
@@ -51,7 +51,7 @@ class FamilyTreeLargeTestSuite {
         return Patient(
             name = name,
             villageId = 1,
-            relationship = rel
+            relationship = rel,
         )
     }
 }

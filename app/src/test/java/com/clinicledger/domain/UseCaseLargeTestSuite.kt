@@ -1,7 +1,6 @@
 package com.clinicledger.domain
 
 import com.clinicledger.data.models.Patient
-import com.clinicledger.domain.usecase.SearchPatientsUseCase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
