@@ -42,13 +42,13 @@ object DateTimeUtils {
         cal.time = date
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
         return when (dayOfWeek) {
-            Calendar.SUNDAY -> if (isHindi) "रविवार / Sunday" else "Sunday"
-            Calendar.MONDAY -> if (isHindi) "सोमवार / Monday" else "Monday"
-            Calendar.TUESDAY -> if (isHindi) "मंगलवार / Tuesday" else "Tuesday"
-            Calendar.WEDNESDAY -> if (isHindi) "बुधवार / Wednesday" else "Wednesday"
-            Calendar.THURSDAY -> if (isHindi) "गुरुवार / Thursday" else "Thursday"
-            Calendar.FRIDAY -> if (isHindi) "शुक्रवार / Friday" else "Friday"
-            Calendar.SATURDAY -> if (isHindi) "शनिवार / Saturday" else "Saturday"
+            Calendar.SUNDAY -> if (isHindi) "रविवार" else "Sunday"
+            Calendar.MONDAY -> if (isHindi) "सोमवार" else "Monday"
+            Calendar.TUESDAY -> if (isHindi) "मंगलवार" else "Tuesday"
+            Calendar.WEDNESDAY -> if (isHindi) "बुधवार" else "Wednesday"
+            Calendar.THURSDAY -> if (isHindi) "गुरुवार" else "Thursday"
+            Calendar.FRIDAY -> if (isHindi) "शुक्रवार" else "Friday"
+            Calendar.SATURDAY -> if (isHindi) "शनिवार" else "Saturday"
             else -> ""
         }
     }

@@ -6,9 +6,10 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.compose.animation.*
+import android.view.HapticFeedbackConstants
+import com.clinicledger.ui.util.FeedbackProvider
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,96 +22,63 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.clinicledger.data.models.Patient
-import com.clinicledger.data.models.Transaction
-import com.clinicledger.data.repository.PatientRepository
 import com.clinicledger.ui.util.LocaleManager
 import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 import com.clinicledger.voice.IntentType
 import com.clinicledger.voice.ParsedVoiceIntent
-import com.clinicledger.voice.VoiceIntentParser
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun VoiceInputSheetCompose(
     onDismiss: () -> Unit,
-    onNavigateToPatientDetail: (Long) -> Unit
+    onNavigateToPatientDetail: (Long) -> Unit,
+    onNavigateToAnalytics: (Long?) -> Unit = {},
+    onRunRoutine: (String) -> Unit = {},
+    viewModel: VoiceAssistantViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val repository = remember { PatientRepository(context) }
+    val view = LocalView.current
     val isHindi = LocalIsHindi.current
 
-    var state by remember { mutableStateOf(ConversationState.IDLE) }
-    var transcript by remember { mutableStateOf("") }
-    var parsedIntent by remember { mutableStateOf<ParsedVoiceIntent?>(null) }
-    var disambiguationPatients by remember { mutableStateOf<List<Patient>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    val state by viewModel.state.collectAsState()
+    val transcript by viewModel.transcript.collectAsState()
+    val parsedIntent by viewModel.parsedIntent.collectAsState()
+    val disambiguationPatients by viewModel.disambiguationPatients.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
 
-    fun processTranscript(text: String) {
-        scope.launch {
-            state = ConversationState.PROCESSING
-            val villages = withContext<List<com.clinicledger.data.models.Village>>(Dispatchers.IO) { repository.getAllVillagesSync() }
-            val intent = VoiceIntentParser.parse(text, villages)
-            parsedIntent = intent
-
-            if (intent.intent == IntentType.UNKNOWN) {
-                state = ConversationState.ERROR
-                error = if (isHindi) "माफ़ करें, मुझे समझ नहीं आया।" else "Sorry, I didn't get that."
-                return@launch
-            }
-
-            if (!intent.patientName.isNullOrBlank()) {
-                val matches = withContext(Dispatchers.IO) { repository.findPatientByVoice(intent.patientName) }
-                if (matches.size > 1) {
-                    disambiguationPatients = matches
-                    state = ConversationState.CONFIRMING
-                } else if (matches.size == 1) {
-                    parsedIntent = intent.copy(patientName = matches[0].name)
-                    state = ConversationState.CONFIRMING
-                } else {
-                    state = ConversationState.CONFIRMING
-                }
-            } else {
-                state = ConversationState.CONFIRMING
-            }
-        }
-    }
-    
     val listener = remember {
         object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                state = ConversationState.LISTENING
+                viewModel.setState(ConversationState.LISTENING)
             }
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
-                state = ConversationState.PROCESSING
+                viewModel.setState(ConversationState.PROCESSING)
             }
             override fun onError(err: Int) {
-                state = ConversationState.ERROR
-                error = when(err) {
+                viewModel.setState(ConversationState.ERROR)
+                val msg = when(err) {
                     SpeechRecognizer.ERROR_NO_MATCH -> if (isHindi) "समझ नहीं आया" else "No match found"
                     SpeechRecognizer.ERROR_NETWORK -> if (isHindi) "नेटवर्क समस्या" else "Network error"
                     else -> "Error: $err"
                 }
+                viewModel.setError(msg)
             }
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
-                    transcript = matches[0]
-                    processTranscript(transcript)
+                    viewModel.processTranscript(matches[0], isHindi)
                 }
             }
             override fun onPartialResults(partialResults: Bundle?) {}
@@ -125,33 +93,6 @@ fun VoiceInputSheetCompose(
         }
         speechRecognizer.setRecognitionListener(listener)
         speechRecognizer.startListening(intent)
-    }
-
-    fun executeAction(intent: ParsedVoiceIntent, confirmedPatientId: Long? = null) {
-        scope.launch {
-            state = ConversationState.SAVING
-            withContext(Dispatchers.IO) {
-                val targetId = confirmedPatientId ?: if (!intent.patientName.isNullOrBlank()) {
-                    repository.getPatientByName(intent.patientName)?.id
-                } else null
-
-                if (targetId != null) {
-                    if (intent.medicineAmount != null && intent.medicineAmount > 0) {
-                        repository.insertTransaction(Transaction(patientId = targetId, type = "medicine", amount = intent.medicineAmount, notes = "Voice added"))
-                    }
-                    if (intent.paymentAmount != null && intent.paymentAmount > 0) {
-                        repository.insertTransaction(Transaction(patientId = targetId, type = "payment", amount = intent.paymentAmount, notes = "Voice added"))
-                    }
-                    
-                    if (intent.intent == IntentType.SEARCH_BALANCE) {
-                        withContext(Dispatchers.Main) { onNavigateToPatientDetail(targetId) }
-                    }
-                }
-            }
-            state = ConversationState.DONE
-            delay(1000)
-            onDismiss()
-        }
     }
 
     LaunchedEffect(Unit) {
@@ -197,6 +138,10 @@ fun VoiceInputSheetCompose(
                         ConversationState.DONE -> Icon(Icons.Rounded.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(64.dp))
                         else -> Icon(Icons.Rounded.Mic, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
                     }
+                    
+                    if (state == ConversationState.SAVING && parsedIntent != null) {
+                        ToolActionBadge(parsedIntent!!.intent, isHindi)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -215,14 +160,30 @@ fun VoiceInputSheetCompose(
                         intent = parsedIntent!!,
                         patients = disambiguationPatients,
                         isHindi = isHindi,
-                        onConfirm = { patientId -> executeAction(parsedIntent!!, patientId) },
+                        onConfirm = { patientId -> 
+                            FeedbackProvider.confirm(view)
+                            viewModel.executeAction(
+                                confirmedPatientId = patientId,
+                                onNavigateToPatientDetail = onNavigateToPatientDetail,
+                                onNavigateToAnalytics = onNavigateToAnalytics,
+                                onRunRoutine = onRunRoutine,
+                                onDone = onDismiss
+                            )
+                        },
                         onCancel = onDismiss
+                    )
+                }
+
+                if (state == ConversationState.TEACHING) {
+                    TeachingOverlay(
+                        isHindi = isHindi,
+                        onSelectAction = { toolId -> viewModel.teachSkill(toolId) }
                     )
                 }
 
                 if (state == ConversationState.ERROR) {
                     Text(text = error ?: "", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { transcript = ""; error = null; startListening() }, modifier = Modifier.padding(top = 16.dp)) {
+                    Button(onClick = { viewModel.reset(); startListening() }, modifier = Modifier.padding(top = 16.dp)) {
                         Text(if (isHindi) "फिर से कोशिश करें" else "Try Again")
                     }
                 }
@@ -283,7 +244,16 @@ fun IntentConfirmation(
                     if (isNotEmpty()) append(", ")
                     append(if (isHindi) "जमा ${LocaleManager.formatCurrency(intent.paymentAmount)}" else "Payment ${LocaleManager.formatCurrency(intent.paymentAmount)}")
                 }
-                if (intent.intent == IntentType.SEARCH_BALANCE) append(if (isHindi) "का हिसाब देखें" else "Check balance")
+                if (intent.intent == IntentType.SEARCH_BALANCE) {
+                    if (isNotEmpty()) append(" ")
+                    append(if (isHindi) "का हिसाब देखें" else "Check balance")
+                }
+                if (intent.intent == IntentType.SUMMARY) {
+                    append(if (isHindi) "आज का सारांश" else "Today's summary")
+                }
+                if (intent.intent == IntentType.SHOW_GRAPH) {
+                    append(if (isHindi) "${intent.villageName ?: ""} का ग्राफ देखें" else "Show graph for ${intent.villageName ?: ""}")
+                }
             }
             Text(text = summary, textAlign = TextAlign.Center)
 
@@ -310,6 +280,63 @@ fun IntentConfirmation(
     }
 }
 
-enum class ConversationState {
-    IDLE, LISTENING, PROCESSING, CONFIRMING, SAVING, DONE, ERROR
+@Composable
+fun ToolActionBadge(intent: IntentType, isHindi: Boolean) {
+    val label = when(intent) {
+        IntentType.MEDICINE -> if (isHindi) "दवाई" else "Medicine"
+        IntentType.PAYMENT -> if (isHindi) "जमा" else "Payment"
+        IntentType.SUMMARY -> if (isHindi) "सारांश" else "Summary"
+        IntentType.SHOW_GRAPH -> if (isHindi) "ग्राफ" else "Graph"
+        else -> intent.name
+    }
+    
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.offset(y = 50.dp)
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun TeachingOverlay(
+    isHindi: Boolean,
+    onSelectAction: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = if (isHindi) "मुझे समझ नहीं आया। यह क्या है?" else "I didn't catch that. What does it mean?",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            val actions = listOf(
+                "MEDICINE" to (if (isHindi) "दवाई दी" else "Medicine"),
+                "PAYMENT" to (if (isHindi) "जमा किया" else "Payment"),
+                "BALANCE" to (if (isHindi) "हिसाब" else "Check Balance"),
+                "SHOW_GRAPH" to (if (isHindi) "ग्राफ दिखाओ" else "Show Graph")
+            )
+            
+            actions.forEach { (id, label) ->
+                OutlinedButton(
+                    onClick = { onSelectAction(id) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    Text(label)
+                }
+            }
+        }
+    }
 }

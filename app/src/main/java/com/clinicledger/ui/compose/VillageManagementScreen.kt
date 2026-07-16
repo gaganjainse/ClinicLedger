@@ -1,14 +1,11 @@
 package com.clinicledger.ui.compose
 
-import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,9 +17,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.clinicledger.R
-import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Village
-import com.clinicledger.data.repository.PatientRepository
+import com.clinicledger.data.repository.VillageRepository
 import com.clinicledger.ui.compose.components.*
 import com.clinicledger.ui.util.LocaleManager
 import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
@@ -30,71 +26,39 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@Composable
-fun VillageManagementScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit,
-) {
-    VillageManagementContent()
-}
-
+/**
+ * Village Management Content.
+ * Removed internal Scaffold to prevent header nesting issues.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VillageManagementContent() {
+fun VillageManagementContent(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val repository = remember { PatientRepository(context) }
+    val villageRepository = remember { VillageRepository(context) }
     val isHindi = LocalIsHindi.current
 
-    val villages by repository.getAllVillages().observeAsState(emptyList())
-    val familyGroups by repository.getAllFamilyGroups().observeAsState(emptyList())
-
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf(stringResource(R.string.tab_villages), stringResource(R.string.tab_family_groups))
-
+    val villages by villageRepository.getAllVillages().observeAsState(emptyList())
     var inputName by remember { mutableStateOf("") }
     var editingVillage by remember { mutableStateOf<Village?>(null) }
-    var editingFamily by remember { mutableStateOf<FamilyGroup?>(null) }
     var villageToDelete by remember { mutableStateOf<Village?>(null) }
-    var familyToDelete by remember { mutableStateOf<FamilyGroup?>(null) }
-    var showAddFamilyDialog by remember { mutableStateOf(value = false) }
-
-    val addedSuccessMsg = stringResource(R.string.added_successfully_toast)
-    val villageDeletedMsg = stringResource(R.string.village_deleted_toast)
-    val familyDeletedMsg = stringResource(R.string.family_deleted_toast)
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        PrimaryScrollableTabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.background,
-            edgePadding = 16.dp
+        // Quick Add Bar
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 2.dp,
+            shadowElevation = 1.dp
         ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = {
-                        selectedTab = index
-                        inputName = ""
-                    },
-                    text = { Text(title, fontWeight = FontWeight.Bold) }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (selectedTab == 0) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(
                     value = inputName,
                     onValueChange = { inputName = it },
@@ -103,337 +67,104 @@ fun VillageManagementContent() {
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
                 )
-
                 Button(
                     onClick = {
                         if (inputName.isNotBlank()) {
                             scope.launch {
                                 withContext(Dispatchers.IO) {
-                                    repository.insertVillage(Village(name = inputName.trim()))
+                                    villageRepository.insertVillage(Village(name = inputName.trim()))
                                 }
-                                Toast.makeText(context, addedSuccessMsg, Toast.LENGTH_SHORT).show()
                                 inputName = ""
                             }
                         }
                     },
                     enabled = inputName.isNotBlank(),
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(54.dp)
+                    modifier = Modifier.height(56.dp)
                 ) {
-                    Icon(Icons.Rounded.Add, contentDescription = "Add")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.add), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Button(
-                    onClick = { showAddFamilyDialog = true },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().height(54.dp)
-                ) {
-                    Icon(Icons.Rounded.Add, contentDescription = "Add Family")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.new_family_placeholder), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Rounded.Add, contentDescription = null)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (selectedTab == 0) {
-                if (villages.isEmpty()) {
-                    item {
-                        ClinicEmptyState(message = stringResource(R.string.no_villages_msg))
-                    }
-                } else {
-                    items(villages, key = { it.id }) { village ->
-                        EntityCard(
-                            name = LocaleManager.getLocalizedVillage(village.name, village.nameHindi),
-                            icon = Icons.Rounded.Cabin,
-                            onEdit = { editingVillage = village },
-                            onDelete = { villageToDelete = village }
-                        )
-                    }
-                }
+            if (villages.isEmpty()) {
+                item { ClinicEmptyState(message = stringResource(R.string.no_villages_msg)) }
             } else {
-                if (familyGroups.isEmpty()) {
-                    item {
-                        ClinicEmptyState(message = stringResource(R.string.no_families_msg))
-                    }
-                } else {
-                    items(familyGroups, key = { it.id }) { group ->
-                        EntityCard(
-                            name = LocaleManager.getLocalizedText(group.name),
-                            icon = Icons.Rounded.Group,
-                            onEdit = { editingFamily = group },
-                            onDelete = { familyToDelete = group }
-                        )
-                    }
+                items(
+                    items = villages, 
+                    key = { it.id },
+                    contentType = { "village" }
+                ) { village ->
+                    EntityCard(
+                        name = LocaleManager.getLocalizedVillage(village.name, village.nameHindi),
+                        icon = Icons.Rounded.LocationOn,
+                        onEdit = { editingVillage = village },
+                        onDelete = { villageToDelete = village }
+                    )
                 }
             }
-
             item { Spacer(modifier = Modifier.height(100.dp)) }
         }
     }
 
+    // Edit Dialog
     if (editingVillage != null) {
-        var tempName by remember { mutableStateOf(LocaleManager.getLocalizedVillage(editingVillage!!.name, editingVillage!!.nameHindi)) }
+        var tempName by remember(editingVillage) { 
+            mutableStateOf(if (isHindi) editingVillage!!.nameHindi.ifEmpty { editingVillage!!.name } else editingVillage!!.name) 
+        }
         AlertDialog(
             onDismissRequest = { editingVillage = null },
-            title = { Text(stringResource(R.string.edit_village_header), fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.edit_village_header)) },
             text = {
                 OutlinedTextField(
                     value = tempName,
                     onValueChange = { tempName = it },
                     label = { Text(stringResource(R.string.village_name_label)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
+                Button(onClick = {
+                    if (tempName.isNotBlank()) {
                         scope.launch {
                             withContext(Dispatchers.IO) {
-                                val updatedVillage = if (isHindi) {
-                                    editingVillage!!.copy(nameHindi = tempName.trim())
+                                // Update name in a way that repo can split or preserve correctly
+                                val updated = if (isHindi) {
+                                    editingVillage!!.copy(nameHindi = tempName, name = if (editingVillage!!.name.isBlank()) tempName else editingVillage!!.name)
                                 } else {
-                                    editingVillage!!.copy(name = tempName.trim())
+                                    editingVillage!!.copy(name = tempName)
                                 }
-                                repository.updateVillage(updatedVillage)
+                                villageRepository.updateVillage(updated)
                             }
                             editingVillage = null
                         }
-                    },
-                    enabled = tempName.isNotBlank()
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingVillage = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (editingFamily != null) {
-        var tempName by remember { mutableStateOf(editingFamily!!.name) }
-        var tempCaste by remember { mutableStateOf(editingFamily!!.caste) }
-        var tempHeadName by remember { mutableStateOf(editingFamily!!.familyHeadName) }
-        var selectedVillageForFamily by remember { mutableStateOf(villages.find { it.id == editingFamily!!.villageId }) }
-        var villageDropdownExpanded by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { editingFamily = null },
-            title = { Text(stringResource(R.string.edit_family_header), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = tempName,
-                        onValueChange = { tempName = it },
-                        label = { Text(stringResource(R.string.family_name_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = tempCaste,
-                        onValueChange = { tempCaste = it },
-                        label = { Text("Caste / Category") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = tempHeadName,
-                        onValueChange = { tempHeadName = it },
-                        label = { Text("Family Head Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    ExposedDropdownMenuBox(
-                        expanded = villageDropdownExpanded,
-                        onExpandedChange = { villageDropdownExpanded = !villageDropdownExpanded },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            readOnly = true,
-                            value = selectedVillageForFamily?.let { LocaleManager.getLocalizedVillage(it.name, it.nameHindi) } ?: "Select Village",
-                            onValueChange = {},
-                            label = { Text("Village") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = villageDropdownExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = villageDropdownExpanded,
-                            onDismissRequest = { villageDropdownExpanded = false }
-                        ) {
-                            villages.forEach { village ->
-                                DropdownMenuItem(
-                                    text = { Text(LocaleManager.getLocalizedVillage(village.name, village.nameHindi)) },
-                                    onClick = {
-                                        selectedVillageForFamily = village
-                                        villageDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) {
-                                repository.updateFamilyGroup(
-                                    editingFamily!!.copy(
-                                        name = tempName.trim(),
-                                        caste = tempCaste.trim(),
-                                        familyHeadName = tempHeadName.trim(),
-                                        villageId = selectedVillageForFamily?.id ?: editingFamily!!.villageId
-                                    )
-                                )
-                            }
-                            editingFamily = null
-                        }
-                    },
-                    enabled = tempName.isNotBlank() && (selectedVillageForFamily != null)
-                ) {
-                    Text(stringResource(R.string.save))
-                }
+                }, enabled = tempName.isNotBlank()) { Text(stringResource(R.string.save)) }
             },
             dismissButton = {
-                TextButton(onClick = { editingFamily = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
+                TextButton(onClick = { editingVillage = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
 
-    if (showAddFamilyDialog) {
-        var tempName by remember { mutableStateOf("") }
-        var tempCaste by remember { mutableStateOf("") }
-        var tempHeadName by remember { mutableStateOf("") }
-        var selectedVillageForFamily by remember { mutableStateOf(villages.firstOrNull()) }
-        var villageDropdownExpanded by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { showAddFamilyDialog = false },
-            title = { Text("Add Family Group", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = tempName,
-                        onValueChange = { tempName = it },
-                        label = { Text(stringResource(R.string.family_name_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = tempCaste,
-                        onValueChange = { tempCaste = it },
-                        label = { Text("Caste / Category") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = tempHeadName,
-                        onValueChange = { tempHeadName = it },
-                        label = { Text("Family Head Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    ExposedDropdownMenuBox(
-                        expanded = villageDropdownExpanded,
-                        onExpandedChange = { villageDropdownExpanded = !villageDropdownExpanded },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            readOnly = true,
-                            value = selectedVillageForFamily?.let { LocaleManager.getLocalizedVillage(it.name, it.nameHindi) } ?: "Select Village",
-                            onValueChange = {},
-                            label = { Text("Village") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = villageDropdownExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = villageDropdownExpanded,
-                            onDismissRequest = { villageDropdownExpanded = false }
-                        ) {
-                            villages.forEach { village ->
-                                DropdownMenuItem(
-                                    text = { Text(LocaleManager.getLocalizedVillage(village.name, village.nameHindi)) },
-                                    onClick = {
-                                        selectedVillageForFamily = village
-                                        villageDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) {
-                                repository.insertFamilyGroup(
-                                    FamilyGroup(
-                                        name = tempName.trim(),
-                                        caste = tempCaste.trim(),
-                                        familyHeadName = tempHeadName.trim(),
-                                        villageId = selectedVillageForFamily?.id ?: 1L
-                                    )
-                                )
-                            }
-                            showAddFamilyDialog = false
-                        }
-                    },
-                    enabled = tempName.isNotBlank() && (selectedVillageForFamily != null)
-                ) {
-                    Text(stringResource(R.string.add))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddFamilyDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
+    // Delete Dialog
     if (villageToDelete != null) {
         AlertDialog(
             onDismissRequest = { villageToDelete = null },
-            title = { Text(stringResource(R.string.delete_village_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Text(stringResource(R.string.delete_village_confirm, LocaleManager.getLocalizedVillage(villageToDelete!!.name, villageToDelete!!.nameHindi)))
-            },
+            title = { Text(stringResource(R.string.delete_village_title)) },
+            text = { Text(stringResource(R.string.delete_village_confirm, villageToDelete!!.name)) },
             confirmButton = {
                 Button(
                     onClick = {
                         scope.launch {
-                            try {
-                                withContext(Dispatchers.IO) {
-                                    repository.deleteVillage(villageToDelete!!)
-                                }
-                                Toast.makeText(context, villageDeletedMsg, Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            withContext(Dispatchers.IO) {
+                                villageRepository.deleteVillage(villageToDelete!!)
                             }
                             villageToDelete = null
                         }
@@ -445,41 +176,6 @@ fun VillageManagementContent() {
             },
             dismissButton = {
                 TextButton(onClick = { villageToDelete = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (familyToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { familyToDelete = null },
-            title = { Text(stringResource(R.string.delete_family_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Text(stringResource(R.string.delete_family_confirm, LocaleManager.getLocalizedText(familyToDelete!!.name)))
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                withContext(Dispatchers.IO) {
-                                    repository.deleteFamilyGroup(familyToDelete!!)
-                                }
-                                Toast.makeText(context, familyDeletedMsg, Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                            }
-                            familyToDelete = null
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { familyToDelete = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             }

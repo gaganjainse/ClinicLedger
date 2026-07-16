@@ -6,7 +6,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.clinicledger.data.models.Alias
+import com.clinicledger.data.models.ClinicKnowledge
 import com.clinicledger.data.models.FamilyGroup
+import com.clinicledger.data.models.LearnedSkill
 import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
@@ -27,9 +29,11 @@ import com.clinicledger.data.converters.DateConverter
         Village::class,
         Alias::class,
         Transaction::class,
-        FamilyGroup::class
+        FamilyGroup::class,
+        ClinicKnowledge::class,
+        LearnedSkill::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -44,6 +48,10 @@ abstract class ClinicLedgerDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
 
     abstract fun familyGroupDao(): FamilyGroupDao
+
+    abstract fun clinicKnowledgeDao(): ClinicKnowledgeDao
+
+    abstract fun learnedSkillDao(): LearnedSkillDao
 
     companion object {
         @Volatile
@@ -90,6 +98,31 @@ abstract class ClinicLedgerDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `clinic_knowledge` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `subjectId` INTEGER NOT NULL, 
+                        `relationType` TEXT NOT NULL, 
+                        `objectName` TEXT NOT NULL, 
+                        `objectId` INTEGER, 
+                        `createdAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `learned_skills` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `triggerPhrase` TEXT NOT NULL, 
+                        `toolId` TEXT NOT NULL, 
+                        `confidence` REAL NOT NULL, 
+                        `useCount` INTEGER NOT NULL, 
+                        `lastUsedAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context): ClinicLedgerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -110,7 +143,7 @@ abstract class ClinicLedgerDatabase : RoomDatabase() {
                             db.execSQL("PRAGMA foreign_keys = ON")
                         }
                     })
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

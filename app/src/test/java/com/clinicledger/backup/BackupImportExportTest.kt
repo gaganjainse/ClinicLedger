@@ -8,9 +8,9 @@ import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
 import com.clinicledger.ui.backup.BackupData
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BackupImportExportTest {
@@ -81,7 +81,7 @@ class BackupImportExportTest {
         assertEquals("Sharma Family", restored.familyGroups?.get(0)?.name)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testBackupVersionValidation() {
         // Current version is 1. Test version matching and non-matching behavior
         val backupData = BackupData(

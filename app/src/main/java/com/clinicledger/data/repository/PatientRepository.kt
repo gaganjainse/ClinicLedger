@@ -7,218 +7,80 @@ import java.util.Date
 import com.clinicledger.data.models.Alias
 import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
-import com.clinicledger.data.models.Transaction
-import com.clinicledger.data.models.Village
-import com.clinicledger.ui.util.DateTimeUtils
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
- * Central repository that coordinates data access across all four DAOs
- * (Patient, Village, Alias, Transaction). ViewModels and UI controllers
- * interact with this repository rather than with DAOs directly.
- *
- * Key responsibility: when a transaction is inserted, the repository
- * automatically recalculates and updates the patient's denormalized
- * balance field so that balance queries remain fast.
+ * Repository managing Patient, Alias, and Family Group data.
+ * Implements caching for family groups to optimize UI responsiveness.
  */
-class PatientRepository(private val context: Context) {
+class PatientRepository(context: Context) {
 
-    private val database: ClinicLedgerDatabase by lazy {
-        ClinicLedgerDatabase.getDatabase(context)
-    }
-    private val patientDao by lazy { database.patientDao() }
-    private val villageDao by lazy { database.villageDao() }
-    private val aliasDao by lazy { database.aliasDao() }
-    private val transactionDao by lazy { database.transactionDao() }
-    private val familyGroupDao by lazy { database.familyGroupDao() }
+    private val database = ClinicLedgerDatabase.getDatabase(context)
+    private val patientDao = database.patientDao()
+    private val aliasDao = database.aliasDao()
+    private val familyGroupDao = database.familyGroupDao()
 
-    suspend fun insertPatient(patient: Patient): Long {
-        return patientDao.insertPatient(patient)
+    companion object {
+        @Volatile
+        private var cachedFamilyGroups: List<FamilyGroup>? = null
+        private val familyCacheMutex = Mutex()
     }
 
-    suspend fun updatePatient(patient: Patient) {
-        patientDao.updatePatient(patient)
-    }
+    suspend fun insertPatient(patient: Patient): Long = patientDao.insertPatient(patient)
 
-    fun getPatientById(patientId: Long): LiveData<Patient?> {
-        return patientDao.getPatientById(patientId)
-    }
+    suspend fun updatePatient(patient: Patient) = patientDao.updatePatient(patient)
 
-    suspend fun getPatientByIdSync(patientId: Long): Patient? {
-        return patientDao.getPatientByIdSync(patientId)
-    }
+    fun getPatientById(patientId: Long): LiveData<Patient?> = patientDao.getPatientById(patientId)
 
-    suspend fun getAllPatientsSync(): List<Patient> {
-        return patientDao.getAllPatientsSync()
-    }
+    suspend fun getPatientByIdSync(patientId: Long): Patient? = patientDao.getPatientByIdSync(patientId)
 
-    fun getAllPatientsObservable(): LiveData<List<Patient>> {
-        return patientDao.getAllPatientsObservable()
-    }
+    suspend fun getAllPatientsSync(): List<Patient> = patientDao.getAllPatientsSync()
 
-    fun getAllTransactions(): LiveData<List<Transaction>> {
-        return transactionDao.getAllTransactions()
-    }
+    fun getAllPatientsObservable(): LiveData<List<Patient>> = patientDao.getAllPatientsObservable()
 
-    suspend fun getAllTransactionsSync(): List<Transaction> {
-        return transactionDao.getAllTransactionsSync()
-    }
+    fun getRecentPatients(limit: Int = 15): LiveData<List<Patient>> = patientDao.getRecentPatients(limit)
 
-    suspend fun getLastTransaction(): Transaction? {
-        return transactionDao.getAllTransactionsSync().firstOrNull()
-    }
+    /**
+     * Retrieves a patient by their exact name.
+     */
+    suspend fun getPatientByName(name: String): Patient? = patientDao.getPatientByName(name)
 
-    suspend fun getDefaultersCount(date: Date): Int {
-        return patientDao.getDefaultersCount(date)
-    }
+    suspend fun findPatientByVoice(name: String): List<Patient> = patientDao.findPatientsByNameOrAlias(name)
 
-    /** Delegates search term directly to the DAO, which adds the SQLite wildcards */
-    fun searchPatients(searchQuery: String): LiveData<List<Patient>> {
-        return patientDao.searchPatients(searchQuery)
-    }
+    fun searchPatients(searchQuery: String): LiveData<List<Patient>> = patientDao.searchPatients(searchQuery)
 
-    suspend fun getPatientByName(name: String): Patient? {
-        return patientDao.getPatientByName(name)
-    }
+    suspend fun getDefaultersCount(date: Date): Int = patientDao.getDefaultersCount(date)
 
-    suspend fun findPatientByVoice(name: String): List<Patient> {
-        return patientDao.findPatientsByNameOrAlias(name)
-    }
+    fun getTotalDueObservable(): LiveData<Double> = patientDao.getTotalDueObservable()
 
-    fun getRecentPatients(limit: Int = 15): LiveData<List<Patient>> {
-        return patientDao.getRecentPatients(limit)
-    }
+    // Aliases
+    suspend fun insertAlias(alias: Alias): Long = aliasDao.insertAlias(alias)
+    suspend fun deleteAlias(alias: Alias) = aliasDao.deleteAlias(alias)
+    fun getAliasesByPatient(patientId: Long): LiveData<List<Alias>> = aliasDao.getAliasesByPatient(patientId)
 
-    suspend fun insertVillage(village: Village): Long {
-        val updatedVillage = translateVillageBilingual(village)
-        return villageDao.insertVillage(updatedVillage)
-    }
-
-    suspend fun updateVillage(village: Village) {
-        val updatedVillage = translateVillageBilingual(village)
-        villageDao.updateVillage(updatedVillage)
-    }
-
-    suspend fun deleteVillage(village: Village) {
-        villageDao.deleteVillage(village)
-    }
-
-    fun getAllVillages(): LiveData<List<Village>> {
-        return villageDao.getAllVillages()
-    }
-
-    suspend fun getAllVillagesSync(): List<Village> {
-        return villageDao.getAllVillagesSync()
-    }
-
-    suspend fun insertAlias(alias: Alias): Long {
-        return aliasDao.insertAlias(alias)
-    }
-
-    suspend fun deleteAlias(alias: Alias) {
-        aliasDao.deleteAlias(alias)
-    }
-
-    fun getAliasesByPatient(patientId: Long): LiveData<List<Alias>> {
-        return aliasDao.getAliasesByPatient(patientId)
-    }
-
-    suspend fun deleteAliasesByPatient(patientId: Long) {
-        aliasDao.deleteAliasesByPatient(patientId)
-    }
-
+    // Family Groups
     suspend fun insertFamilyGroup(familyGroup: FamilyGroup): Long {
-        return familyGroupDao.insertFamilyGroup(familyGroup)
+        return familyGroupDao.insertFamilyGroup(familyGroup).also { invalidateFamilyCache() }
     }
-
     suspend fun updateFamilyGroup(familyGroup: FamilyGroup) {
         familyGroupDao.updateFamilyGroup(familyGroup)
+        invalidateFamilyCache()
     }
-
     suspend fun deleteFamilyGroup(familyGroup: FamilyGroup) {
         familyGroupDao.deleteFamilyGroup(familyGroup)
+        invalidateFamilyCache()
     }
+    
+    fun getAllFamilyGroups(): LiveData<List<FamilyGroup>> = familyGroupDao.getAllFamilyGroups()
+    
+    suspend fun getFamilyGroupById(familyGroupId: Long): FamilyGroup? = familyGroupDao.getFamilyGroupById(familyGroupId)
+    
+    fun getPatientsByFamilyGroup(familyGroupId: Long): LiveData<List<Patient>> = patientDao.getPatientsByFamilyGroup(familyGroupId)
 
-    fun getAllFamilyGroups(): LiveData<List<FamilyGroup>> {
-        return familyGroupDao.getAllFamilyGroups()
-    }
-
-    suspend fun getFamilyGroupById(familyGroupId: Long): FamilyGroup? {
-        return familyGroupDao.getFamilyGroupById(familyGroupId)
-    }
-
-    fun getPatientsByFamilyGroup(familyGroupId: Long): LiveData<List<Patient>> {
-        return patientDao.getPatientsByFamilyGroup(familyGroupId)
-    }
-
-    /**
-     * Recomputes the patient's balance from all their transactions and
-     * updates the denormalized current_balance field on the patient record.
-     * Called automatically after every transaction insert.
-     */
-    suspend fun recalculateBalance(patientId: Long, customDate: java.util.Date? = null) {
-        val rawBalance = transactionDao.getPatientBalance(patientId) ?: 0.0
-        patientDao.setPatientBalance(patientId, rawBalance, customDate ?: java.util.Date())
-    }
-
-    /**
-     * Inserts a transaction and immediately recalculates the patient's
-     * balance to keep the denormalized field in sync.
-     */
-    suspend fun insertTransaction(transaction: Transaction): Long {
-        val transactionId = transactionDao.insertTransaction(transaction)
-        recalculateBalance(transaction.patientId, transaction.createdAt)
-        return transactionId
-    }
-
-    fun getTransactionsByPatient(patientId: Long): LiveData<List<Transaction>> {
-        return transactionDao.getTransactionsByPatient(patientId)
-    }
-
-    fun getTopPatientsByBalance(limit: Int = 10): LiveData<List<Patient>> {
-        return patientDao.getTopPatientsByBalance(limit)
-    }
-
-    /** Total medicine costs since a given date, for summary reports */
-    suspend fun getTotalMedicineSince(since: Date): Double {
-        return transactionDao.getTotalMedicineSince(since)
-    }
-
-    /** Total payments received since a given date, for summary reports */
-    suspend fun getTotalPaymentsSince(since: Date): Double {
-        return transactionDao.getTotalPaymentsSince(since)
-    }
-
-    fun getTotalDueObservable(): LiveData<Double> {
-        return patientDao.getTotalDueObservable()
-    }
-
-    fun getTotalCollectedTodayObservable(): LiveData<Double> {
-        val midnight = DateTimeUtils.getStartOfDay()
-        return transactionDao.getTotalCollectedSinceObservable(midnight)
-    }
-
-    private suspend fun translateVillageBilingual(village: Village): Village {
-        val rawName = village.name.trim()
-        if (rawName.contains("/")) {
-            val parts = rawName.split("/").map { it.trim() }
-            if (parts.size >= 2) {
-                val eng = parts[0]
-                val hin = parts[1]
-                val secondHasHindi = hin.any { it in '\u0900'..'\u097F' }
-                if (secondHasHindi) {
-                    return village.copy(
-                        name = if (eng.isNotEmpty()) eng else hin,
-                        nameHindi = if (hin.isNotEmpty()) hin else eng
-                    )
-                }
-            }
-        }
-        
-        val hasHindi = rawName.any { it in '\u0900'..'\u097F' }
-        return if (hasHindi) {
-            village.copy(name = rawName, nameHindi = rawName)
-        } else {
-            village.copy(name = rawName, nameHindi = "")
+    private suspend fun invalidateFamilyCache() {
+        familyCacheMutex.withLock {
+            cachedFamilyGroups = null
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.clinicledger.voice
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class VoiceIntentParserTest {
@@ -15,7 +15,7 @@ class VoiceIntentParserTest {
         assertNull(result.paymentAmount)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testRamLalNePaanchSauDiye() {
         val result = VoiceIntentParser.parse("Ram Lal ne paanch sau diye")
         assertEquals(IntentType.PAYMENT, result.intent)
@@ -24,7 +24,7 @@ class VoiceIntentParserTest {
         assertNull(result.medicineAmount)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testNayaPatientChotuJhilaiSeDedhSauDawa() {
         val result = VoiceIntentParser.parse("Naya patient Chotu Jhilai se dedh sau dawa")
         assertEquals(IntentType.NEW_PATIENT, result.intent)
@@ -34,20 +34,20 @@ class VoiceIntentParserTest {
         assertNull(result.paymentAmount)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testRameshBairwaKoDawaDi() {
         val result = VoiceIntentParser.parse("Ramesh Bairwa ko dawa di")
         assertEquals(IntentType.MEDICINE, result.intent)
         assertEquals("Ramesh Bairwa", result.patientName)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testGalatHoGayaHataDo() {
         val result = VoiceIntentParser.parse("galat ho gaya, hata do")
         assertEquals(IntentType.CORRECTION, result.intent)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testMixedMedicineAndPaymentPhrase() {
         val result = VoiceIntentParser.parse("Ravi ko 300 ki dawa di aur 100 jama kiye")
         assertEquals(IntentType.MEDICINE_AND_PAYMENT, result.intent)
@@ -56,7 +56,7 @@ class VoiceIntentParserTest {
         assertEquals(100.0, result.paymentAmount ?: 0.0, 0.01)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testExtractPatientName_withEnglishPhrases() {
         assertEquals("Ramesh", VoiceIntentParser.extractPatientName("Ramesh ko dawa di 200"))
         assertEquals("Ramesh", VoiceIntentParser.extractPatientName("dawa di Ramesh 200"))
@@ -70,13 +70,13 @@ class VoiceIntentParserTest {
         assertEquals("सतीश", VoiceIntentParser.extractPatientName("बकाया बताओ सतीश का"))
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testExtractVillageName() {
         assertEquals("Siras", VoiceIntentParser.extractVillageName("Ramesh of Siras"))
         assertEquals("Jhilai", VoiceIntentParser.extractVillageName("ramesh of jhilai"))
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testMultiWordNamesMedicine() {
         // Multi-word name: "Ramesh Kumar Bairwa"
         val result = VoiceIntentParser.parse("Ramesh Kumar Bairwa ko 450 ki dawa di")
@@ -96,7 +96,7 @@ class VoiceIntentParserTest {
         assertNull(result.medicineAmount)
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun testMixedPaymentAndMedicineWithMultiWordName() {
         // Multi-word name: "Babu Lal Meena" with mixed payment and medicine sentence
         val result = VoiceIntentParser.parse("Babu Lal Meena ko teen sau ki dawa di aur unhone sau rupees jama kiye")

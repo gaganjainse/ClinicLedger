@@ -9,22 +9,33 @@ import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
 import com.clinicledger.data.repository.PatientRepository
+import com.clinicledger.data.repository.TransactionRepository
+import com.clinicledger.data.repository.VillageRepository
+import com.clinicledger.domain.usecase.SearchPatientsUseCase
 
-/** ViewModel for the search screen. Manages the reactive query-to-results
- * pipeline: every change to the `_query` LiveData triggers a Room search via
- * `switchMap`. When the query is blank, the UI shows recent patients instead. */
+/**
+ * ViewModel for the main dashboard and search functionality.
+ * Manages the reactive pipeline from search queries to ranked patient results.
+ */
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = PatientRepository(getApplication())
+    private val transactionRepository = TransactionRepository(getApplication())
+    private val villageRepository = VillageRepository(getApplication())
+    
+    private val searchPatientsUseCase = SearchPatientsUseCase(repository)
 
-    /** The current search query string. Updated on every keystroke. */
+    /** The current active search query string. */
     private val _query = MutableLiveData("")
 
+    /** Loading state for search operations. */
     private val _isLoading = MutableLiveData<Boolean>(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
-    /** Filtered patient list based on the current query.
-     * Managed via MediatorLiveData so each new query switches sources. */
+    /**
+     * Observable results of the current search query, ranked by relevance.
+     * Switches to an empty list when query is blank.
+     */
     val searchResults = MediatorLiveData<List<Patient>>().apply {
         var previousSource: LiveData<List<Patient>>? = null
         addSource(_query) { query ->
@@ -33,7 +44,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 _isLoading.value = false
                 MutableLiveData(emptyList())
             } else {
-                repository.searchPatients(query)
+                searchPatientsUseCase(query)
             }
             previousSource = newSource
             addSource(newSource) { 
@@ -43,23 +54,21 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** The 15 most recently created patients, shown when no query is active. */
+    /** The most recently created or updated patients. */
     val recentPatients: LiveData<List<Patient>> = repository.getRecentPatients(15)
 
-    /** True when the query is blank, meaning we should show recent patients. */
-    val isShowingRecent = MediatorLiveData<Boolean>().apply {
-        addSource(_query) { value = it.isNullOrBlank() }
-    }
+    /** All available villages, used for ID resolution and selection. */
+    val villages: LiveData<List<Village>> = villageRepository.getAllVillages()
 
-    /** All villages, used by the fragment to resolve villageId → name. */
-    val villages: LiveData<List<Village>> = repository.getAllVillages()
-
-    /** All family groups, used by the fragment to resolve familyGroupId → name. */
+    /** All defined family groups. */
     val familyGroups: LiveData<List<com.clinicledger.data.models.FamilyGroup>> = repository.getAllFamilyGroups()
 
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    /**
+     * Updates the current search query and triggers the ranking use case.
+     */
     fun searchPatients(query: String) {
         _query.value = query
         if (query.isNotBlank()) {
@@ -69,42 +78,49 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setError(msg: String) {
-        _error.value = msg
-    }
-
-    fun clearError() {
-        _error.value = null
-    }
-
+    /** Observable total of all outstanding dues in the clinic. */
     val totalDue: LiveData<Double> = repository.getTotalDueObservable()
-    val totalCollectedToday: LiveData<Double> = repository.getTotalCollectedTodayObservable()
+    
+    /** Observable total of payments received today. */
+    val totalCollectedToday: LiveData<Double> = transactionRepository.getTotalCollectedTodayObservable()
 
-    /** Observable reactive list of all patients to keep all screens and calculations fully in sync */
+    /** Full list of all patients for data-heavy sections like Clinic Memory. */
     val allPatients: LiveData<List<Patient>> = repository.getAllPatientsObservable()
 
-    /** Observable reactive list of all transactions chronologically */
-    val allTransactions: LiveData<List<Transaction>> = repository.getAllTransactions()
+    /** Full chronological list of all transactions. */
+    val allTransactions: LiveData<List<Transaction>> = transactionRepository.getAllTransactions()
 
-    /** Preserves current sidebar selection across recreation/rebuild cycles (e.g. language toggles) */
+    /** Stores the currently selected drawer tab, persisted in SharedPreferences. */
     private val prefs = getApplication<Application>().getSharedPreferences("clinic_ledger_prefs", android.content.Context.MODE_PRIVATE)
     private val _selectedTab = MutableLiveData<String>(prefs.getString("selected_tab", "LEDGER") ?: "LEDGER")
     val selectedTab: LiveData<String> = _selectedTab
 
+    /**
+     * Sets the active navigation tab and persists the choice.
+     */
     fun setSelectedTab(tab: String) {
         _selectedTab.value = tab
         prefs.edit().putString("selected_tab", tab).apply()
     }
 
+    /**
+     * Finds a patient by exact name match.
+     */
     suspend fun getPatientByName(name: String): Patient? {
         return repository.getPatientByName(name)
     }
 
+    /**
+     * Finds patients by name or alias for voice-driven disambiguation.
+     */
     suspend fun findPatientByVoice(name: String): List<Patient> {
         return repository.findPatientByVoice(name)
     }
 
+    /**
+     * Records a manual transaction.
+     */
     suspend fun insertTransaction(transaction: Transaction) {
-        repository.insertTransaction(transaction)
+        transactionRepository.insertTransaction(transaction)
     }
 }

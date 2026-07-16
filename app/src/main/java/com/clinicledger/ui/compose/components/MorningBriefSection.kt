@@ -124,7 +124,7 @@ fun MorningBriefSection(
                         BriefInsightRow(
                             icon = Icons.AutoMirrored.Rounded.TrendingUp,
                             label = "अधिकतम बकाया मरीज / Highest Pending Patient",
-                            value = "${highestDuePatient.name} (${LocaleManager.formatCurrency(highestDuePatient.currentBalance)})",
+                            value = "${LocaleManager.formatPatientName(highestDuePatient.name)} (${LocaleManager.formatCurrency(highestDuePatient.currentBalance)})",
                             isError = true
                         )
                     }

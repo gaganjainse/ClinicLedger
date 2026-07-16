@@ -4,7 +4,7 @@
 -->
 <resources>
     <!-- App-level -->
-    <string name="app_name">क्लिनिक लेजर</string>
+    <string name="app_name">Clinic Ledger</string>
 
     <!-- Search & patient lookup -->
     <string name="search_hint">नाम, गाँव या फोन से खोजें</string>
@@ -87,7 +87,7 @@
     <string name="voice_open">खोलें</string>
     <string name="voice_not_found">रोगी नहीं मिला: %1$s</string>
     <string name="voice_balance_spoken">%1$s के खाते में %2$s रुपये बाकी हैं।</string>
-    <string name="voice_not_found_spoken">कृपया ध्यान दें, %s naam ka koi रोगी nahi mila.</string>
+    <string name="voice_not_found_spoken">कृपया ध्यान दें, %s नाम का कोई रोगी नहीं मिला।</string>
     <string name="voice_confirm_question">क्या यह सारी जानकारी सही है?</string>
     <string name="voice_saved">आपका लेनदेन सफलतापूर्वक सुरक्षित कर लिया गया है।</string>
     <string name="error_no_match">नहीं सुन पाया</string>
@@ -96,7 +96,7 @@
     <string name="voice_try_again">ठीक है, कोई बात नहीं। कृपया नए सिरे से दोबारा बोलें।</string>
     <string name="voice_ask_medicine_amount">कृपया दवा की कुल राशि बताएं?</string>
     <string name="voice_ask_payment_amount">कृपया प्राप्त भुगतान राशि बताएं?</string>
-    <string name="voice_disambiguation">मुझे इस नाम के दो लोग मिले हैं। %2$s गांव के %1$s या %3$s के?</string>
+    <string name="voice_disambiguation">मुझे इस नाम के दो लोग मिले हैं। %1$s गांव के %2$s या %1$s के %3$s?</string>
     <string name="voice_correction_done">आपकी पिछली प्रविष्टि सफलतापूर्वक हटा दी गई है। नया बकाया ₹%s है।</string>
     <string name="voice_new_patient_confirm">नया रोगी %1$s, जिनका गाँव %2$s है। क्या इसे जोड़ दें?</string>
     <string name="voice_medicine_confirmation">%1$s के लिए ₹%2$s की दवा दर्ज हो रही है। कुल बकाया ₹%3$s हो जाएगा। क्या सही है?</string>
@@ -187,7 +187,7 @@
     <string name="medicine_button">दवा</string>
     <string name="payment_button">जमा</string>
     <string name="adjust_button">समायोजन</string>
-    <string name="edit_profile">प्रोफाइल बदलें</string>
+    <string name="edit_profile">Edit Profile</string>
     <string name="add_alias">उर्फ़ जोड़ें</string>
     <string name="alias_name_hint">उर्फ़ (जैसे: छोटू, रामू)</string>
     <string name="link_family_group">परिवार समूह से लिंक करें</string>
@@ -317,7 +317,7 @@
     <string name="highest_pending_patient_value">%1$s (₹%2$d)</string>
     <string name="new_family_toast">नया परिवार सहेज लिया गया!</string>
     <string name="create_family_dialog_title">नया परिवार बनाएं</string>
-    <string name="family_name_field_label">परिवार का नाम (e.g. शर्मा परिवार)</string>
+    <string name="family_name_field_label">परिवार का नाम (जैसे: शर्मा परिवार)</string>
     <string name="caste_optional_label">जाति (वैकल्पिक)</string>
     <string name="head_name_optional_label">मुखिया का नाम (वैकल्पिक)</string>
     <string name="create_family_button_label">बनाएं</string>
@@ -360,4 +360,43 @@
     <string name="yes_text">हाँ</string>
     <string name="no_text">नहीं</string>
     <string name="attribution_speech_recognizer">वॉयस असिस्टेंट</string>
+    <string name="caste_label">जाति / श्रेणी</string>
+    <string name="family_head_label">परिवार के मुखिया का नाम</string>
+    <string name="select_village">गाँव चुनें</string>
+    <string name="analytics_total_outstanding_patients">कुल बकायादार मरीज</string>
+    <string name="analytics_collected_today">आज प्राप्त संग्रह</string>
+    <string name="analytics_monthly_collection">इस महीने का संग्रह</string>
+    <string name="analytics_all_debtors">सभी ऋणी मरीज</string>
+    <string name="analytics_village_outstanding_title">%s के बकायादार</string>
+    <string name="analytics_overdue_30">> 30 दिन निष्क्रिय बकायादार</string>
+    <string name="analytics_overdue_90">> 90 दिन निष्क्रिय बकायादार</string>
+    <string name="analytics_overdue_180">> 180 दिन निष्क्रिय बकायादार</string>
+    <string name="analytics_non_visitors_60">60+ दिनों से नहीं आए मरीज</string>
+    <string name="menu_ledger_home">होम लेजर</string>
+    <string name="menu_patient_list">मरीजों की सूची</string>
+    <string name="menu_clinic_memory">क्लिनिक मेमोरी</string>
+    <string name="menu_transaction_logs">लेनदेन लॉग</string>
+    <string name="menu_analytics">विश्लेषण</string>
+    <string name="menu_villages_families">गाँव और परिवार</string>
+    <string name="menu_backup">बैकअप</string>
+    <string name="menu_switch_to_hindi">हिंदी में बदलें</string>
+    <string name="menu_switch_to_english">English में बदलें</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">सेटिंग्स और उपकरण</string>
+    <string name="settings_section_general">सामान्य</string>
+    <string name="settings_section_agent">एजेंटिक ओएस (Agentic OS)</string>
+    <string name="settings_section_database">डेटाबेस और रखरखाव</string>
+    <string name="settings_section_system">सिस्टम</string>
+    <string name="settings_language">भाषा</string>
+    <string name="settings_voice_speed">आवाज़ की गति</string>
+    <string name="settings_clear_data">सभी क्लीनिकल डेटा हटाएँ</string>
+    <string name="settings_reseed_demo">डेमो डेटा फिर से लोड करें</string>
+    <string name="settings_system_health">सिस्टम आर्किटेक्चर देखें</string>
+    <string name="settings_app_info">ऐप वर्जन</string>
+
+    <string name="nav_ledger">बहीखाता</string>
+    <string name="nav_analytics">विश्लेषण</string>
+    <string name="nav_villages">गाँव</string>
+    <string name="nav_settings">सेटिंग्स</string>
 </resources>

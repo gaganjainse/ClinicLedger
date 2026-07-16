@@ -360,4 +360,43 @@
     <string name="yes_text">Yes</string>
     <string name="no_text">No</string>
     <string name="attribution_speech_recognizer">Voice Assistant</string>
+    <string name="caste_label">Caste / Category</string>
+    <string name="family_head_label">Family Head Name</string>
+    <string name="select_village">Select Village</string>
+    <string name="analytics_total_outstanding_patients">Total Outstanding Patients</string>
+    <string name="analytics_collected_today">Today\'s Collection</string>
+    <string name="analytics_monthly_collection">Monthly Collection</string>
+    <string name="analytics_all_debtors">All Debtor Patients</string>
+    <string name="analytics_village_outstanding_title">%s Outstanding Patients</string>
+    <string name="analytics_overdue_30">> 30 Days Inactive Accounts</string>
+    <string name="analytics_overdue_90">> 90 Days Inactive Accounts</string>
+    <string name="analytics_overdue_180">> 180 Days Inactive Accounts</string>
+    <string name="analytics_non_visitors_60">Patients Not Visited in 60+ Days</string>
+    <string name="menu_ledger_home">Ledger Home</string>
+    <string name="menu_patient_list">Patient List</string>
+    <string name="menu_clinic_memory">Clinic Memory</string>
+    <string name="menu_transaction_logs">Transaction Logs</string>
+    <string name="menu_analytics">Analytics</string>
+    <string name="menu_villages_families">Villages &amp; Families</string>
+    <string name="menu_backup">Backup</string>
+    <string name="menu_switch_to_hindi">Switch to Hindi</string>
+    <string name="menu_switch_to_english">English में बदलें</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings &amp; Tools</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_agent">Agentic OS</string>
+    <string name="settings_section_database">Database &amp; Maintenance</string>
+    <string name="settings_section_system">System</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_voice_speed">Voice Briefing Speed</string>
+    <string name="settings_clear_data">Clear All Clinical Data</string>
+    <string name="settings_reseed_demo">Re-seed Demo Data</string>
+    <string name="settings_system_health">View System Architecture</string>
+    <string name="settings_app_info">App Version</string>
+
+    <string name="nav_ledger">Ledger</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_villages">Villages</string>
+    <string name="nav_settings">Settings</string>
 </resources>

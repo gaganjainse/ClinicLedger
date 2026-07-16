@@ -27,7 +27,6 @@ import com.clinicledger.R
 import com.clinicledger.data.local.ClinicLedgerDatabase
 import com.clinicledger.service.BackupService
 import com.clinicledger.ui.backup.BackupData
-import com.clinicledger.ui.util.BackupLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,6 +34,10 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 
+/**
+ * Tab responsible for Data Backup, Restoration, and Maintenance.
+ * Provides JSON-based export/import and demo data management.
+ */
 @Composable
 fun BackupTab() {
     val context = LocalContext.current
@@ -68,6 +71,10 @@ fun BackupTab() {
     var showDemoConfirmDialog by remember { mutableStateOf(false) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
 
+    /**
+     * Executes the JSON backup restoration logic.
+     * Validates schema version and replaces/merges data within a single Room transaction.
+     */
     fun executeRestore(uri: Uri) {
         operationProgress = true
         scope.launch(Dispatchers.IO) {
@@ -82,6 +89,10 @@ fun BackupTab() {
                 }
                 val json = BufferedReader(InputStreamReader(inputStream)).use { it.readText() }
                 val backupData = gson.fromJson(json, BackupData::class.java)
+
+                if (backupData == null || backupData.patients == null || backupData.villages == null) {
+                    throw Exception("Invalid backup file structure")
+                }
 
                 if (backupData.version != BackupData.CURRENT_VERSION) {
                     withContext(Dispatchers.Main) {
@@ -105,7 +116,7 @@ fun BackupTab() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, importSuccessMsg, Toast.LENGTH_LONG).show()
                     statusMessage = context.applicationContext.getString(R.string.import_success_status, backupData.patients.size, backupData.villages.size)
-                    BackupLogger.logEvent(context, "Restored backup (${backupData.patients.size} patients)")
+                    android.util.Log.d("BackupTab", "Restored backup (${backupData.patients.size} patients)")
                     operationProgress = false
                 }
             } catch (e: Exception) {
@@ -118,16 +129,19 @@ fun BackupTab() {
         }
     }
 
+    /**
+     * Resets the entire clinic ledger. Use with caution.
+     */
     fun executeClearAllData() {
         operationProgress = true
         scope.launch(Dispatchers.IO) {
             try {
                 com.clinicledger.data.util.DataSeeder.clearAllData(context)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, clearSuccessMsg, Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, clearSuccessMsg, Toast.LENGTH_SHORT).show()
                     refreshStatus()
                     statusMessage = localLedgerHealthyMsg
-                    BackupLogger.logEvent(context, "Cleared all local data")
+                    android.util.Log.d("BackupTab", "Cleared all local data")
                     operationProgress = false
                 }
             } catch (e: Exception) {
@@ -139,6 +153,9 @@ fun BackupTab() {
         }
     }
 
+    /**
+     * Seeds the database with high-quality sample data for testing or demonstration.
+     */
     fun executeImportDemoData() {
         operationProgress = true
         scope.launch(Dispatchers.IO) {
@@ -148,7 +165,7 @@ fun BackupTab() {
                     Toast.makeText(context, demoSuccessMsg, Toast.LENGTH_LONG).show()
                     refreshStatus()
                     statusMessage = localLedgerHealthyMsg
-                    BackupLogger.logEvent(context, "Seeded demo data")
+                    android.util.Log.d("BackupTab", "Seeded demo data")
                     operationProgress = false
                 }
             } catch (e: Exception) {
@@ -203,6 +220,7 @@ fun BackupTab() {
                 textAlign = TextAlign.Center
             )
 
+            // Auto-backup configuration card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -231,10 +249,10 @@ fun BackupTab() {
                             onCheckedChange = { isChecked ->
                                 if (isChecked) {
                                     BackupService.scheduleBackup(context)
-                                    BackupLogger.logEvent(context, "Enabled Auto Backup")
+                                    android.util.Log.d("BackupTab", "Enabled Auto Backup")
                                 } else {
                                     BackupService.cancelBackup(context)
-                                    BackupLogger.logEvent(context, "Disabled Auto Backup")
+                                    android.util.Log.d("BackupTab", "Disabled Auto Backup")
                                 }
                                 autoBackupEnabled = isChecked
                                 refreshStatus()
@@ -250,6 +268,7 @@ fun BackupTab() {
                 }
             }
 
+            // Export action
             Button(
                 onClick = {
                     operationProgress = true
@@ -288,6 +307,7 @@ fun BackupTab() {
                 Text(stringResource(R.string.create_backup_button), fontWeight = FontWeight.Bold)
             }
 
+            // Import action
             OutlinedButton(
                 onClick = { importLauncher.launch("application/json") },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -300,6 +320,7 @@ fun BackupTab() {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
+            // Maintenance section
             Button(
                 onClick = { showDemoConfirmDialog = true },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -323,6 +344,7 @@ fun BackupTab() {
             }
         }
 
+        // Confirmation Dialogs
         if (showRestoreConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showRestoreConfirmDialog = false },

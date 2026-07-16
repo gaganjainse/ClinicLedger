@@ -2,6 +2,9 @@ package com.clinicledger.voice
 
 import java.util.Locale
 
+/**
+ * Result of the voice parsing logic.
+ */
 data class ParsedVoiceIntent(
     val intent: IntentType,
     val patientName: String? = null,
@@ -11,6 +14,9 @@ data class ParsedVoiceIntent(
     val confidence: Float = 0f,
 )
 
+/**
+ * Supported actions that can be detected from a voice transcript.
+ */
 enum class IntentType {
     SEARCH_BALANCE,
     MEDICINE,
@@ -20,11 +26,22 @@ enum class IntentType {
     CORRECTION,
     CONFIRM_YES,
     CONFIRM_NO,
+    SUMMARY,
+    SHOW_GRAPH,
+    VIEW_HISTORY,
+    ROUTINE,
     UNKNOWN
 }
 
+/**
+ * Heuristic-based natural language parser for Hindi and English medical ledger commands.
+ * Identifies patient names, amounts, and intent types from speech transcripts.
+ */
 object VoiceIntentParser {
 
+    /**
+     * Main entry point for parsing a raw transcript.
+     */
     fun parse(text: String, villages: List<com.clinicledger.data.models.Village>? = null): ParsedVoiceIntent {
         val clean = text.lowercase(Locale.getDefault()).trim()
             .replace("[.,!?]+".toRegex(), " ")
@@ -48,7 +65,14 @@ object VoiceIntentParser {
         )
     }
 
+    /**
+     * Keyword-based intent detection.
+     */
     fun detectIntent(text: String): IntentType {
+        if (isRoutine(text)) return IntentType.ROUTINE
+        if (isSummary(text)) return IntentType.SUMMARY
+        if (isGraph(text)) return IntentType.SHOW_GRAPH
+        if (isHistory(text)) return IntentType.VIEW_HISTORY
         if (isCorrection(text)) return IntentType.CORRECTION
         if (isConfirmNo(text)) return IntentType.CONFIRM_NO
         if (isConfirmYes(text)) return IntentType.CONFIRM_YES
@@ -97,6 +121,26 @@ object VoiceIntentParser {
         "no", "wrong", "dobara", "phir se", "नहीं", "नही", "बदलो", "फिर से"
     )
 
+    private val summaryKeywords = setOf(
+        "aaj ka", "summary", "report", "brief", "today", "today's",
+        "आज का", "हिसाब बताओ", "कुल", "सारांश"
+    )
+
+    private val graphKeywords = setOf(
+        "graph", "chart", "analytics", "analysis", "progress",
+        "ग्राफ", "चार्ट", "नक्शा", "कैसा चल रहा है"
+    )
+
+    private val historyKeywords = setOf(
+        "purana", "history", "record", "records", "pichla",
+        "पुराना", "रिकॉर्ड", "पहले का"
+    )
+
+    private val routineKeywords = setOf(
+        "routine", "shuruat", "start", "protocol",
+        "रूटीन", "शुरुआत", "शुरू करें", "काम शुरू करें"
+    )
+
     private val medicineKeywordsNear = setOf(
         "dawa", "dawai", "dava", "davai", "tablet", "syrup", "injection", "medicine", "udhaar", "udhar",
         "दवा", "दवाई", "उधार"
@@ -139,6 +183,21 @@ object VoiceIntentParser {
             pattern.containsMatchIn(text)
         }
 
+    private fun isSummary(text: String): Boolean =
+        summaryKeywords.any { containsWordOrPhrase(text, it) }
+
+    private fun isGraph(text: String): Boolean =
+        graphKeywords.any { containsWordOrPhrase(text, it) }
+
+    private fun isHistory(text: String): Boolean =
+        historyKeywords.any { containsWordOrPhrase(text, it) }
+
+    private fun isRoutine(text: String): Boolean =
+        routineKeywords.any { containsWordOrPhrase(text, it) }
+
+    /**
+     * Extracts potential patient names by looking at tokens before grammatical particles.
+     */
     fun extractPatientName(text: String, villages: List<com.clinicledger.data.models.Village>? = null): String? {
         val clean = text.lowercase(Locale.getDefault()).trim()
         
@@ -244,6 +303,9 @@ object VoiceIntentParser {
         return hindiNumWords.contains(word)
     }
 
+    /**
+     * Extracts village names by matching against the known village list.
+     */
     fun extractVillageName(text: String, villages: List<com.clinicledger.data.models.Village>? = null): String? {
         val words = text.split("\\s+".toRegex())
         if (villages != null) {
@@ -274,6 +336,9 @@ object VoiceIntentParser {
 
     data class NumberGroup(val value: Double, val startIndex: Int, val endIndex: Int)
 
+    /**
+     * Groups consecutive number-like words (digits or Hindi words like "teen sau").
+     */
     fun findNumberGroups(cleanText: String): List<NumberGroup> {
         val words = cleanText.split("\\s+".toRegex())
         val groups = mutableListOf<NumberGroup>()
@@ -314,6 +379,9 @@ object VoiceIntentParser {
         return HindiNumberConverter.parseHindiNumber(str)
     }
 
+    /**
+     * Assigns detected number groups to either Medicine or Payment based on surrounding keywords.
+     */
     fun classifyGroups(groups: List<NumberGroup>, words: List<String>, intent: IntentType): Pair<Double?, Double?> {
         if (groups.isEmpty()) return Pair(null, null)
 

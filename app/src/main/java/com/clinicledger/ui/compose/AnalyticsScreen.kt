@@ -4,15 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,44 +16,88 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.clinicledger.R
 import com.clinicledger.data.models.Patient
 import com.clinicledger.ui.analytics.viewmodel.AnalyticsViewModel
 import com.clinicledger.ui.compose.components.*
+import com.clinicledger.ui.util.DateTimeUtils
 import com.clinicledger.ui.util.LocaleManager
 import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
+import kotlinx.coroutines.launch
 
+/**
+ * Screen displaying various clinic statistics, dues, and performance metrics.
+ * Supports deep-linking via [initialVillageId].
+ */
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel,
+    initialVillageId: Long? = null,
     onNavigateBack: () -> Unit,
     onNavigateHome: () -> Unit,
     onNavigateToPatientDetail: (Long) -> Unit,
 ) {
-    AnalyticsContent(
-        viewModel = viewModel,
-        onNavigateToPatientDetail = onNavigateToPatientDetail
-    )
+    val isHindi = LocalIsHindi.current
+    
+    ClinicScaffold(
+        title = if (isHindi) "क्लीनिक विश्लेषण" else "Clinic Analytics",
+        onBack = onNavigateBack
+    ) { paddingValues ->
+        AnalyticsContent(
+            viewModel = viewModel,
+            initialVillageId = initialVillageId,
+            onNavigateToPatientDetail = onNavigateToPatientDetail,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 }
 
+/**
+ * Core content of the Analytics screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsContent(
     viewModel: AnalyticsViewModel,
-    onNavigateToPatientDetail: (Long) -> Unit
+    initialVillageId: Long? = null,
+    onNavigateToPatientDetail: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val isHindi = LocalIsHindi.current
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val scrollState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    var activePatientListTitle by remember { mutableStateOf<String?>(null) }
+    var activePatientList by remember { mutableStateOf<List<Patient>?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAnalytics()
     }
 
-    var activePatientListTitle by remember { mutableStateOf<String?>(null) }
-    var activePatientList by remember { mutableStateOf<List<Patient>?>(null) }
+    // Handle Deep Link Filtering
+    LaunchedEffect(initialVillageId, uiState.villageDuesList) {
+        if (initialVillageId != null && uiState.villageDuesList.isNotEmpty()) {
+            val village = uiState.villageDuesList.find { it.villageId == initialVillageId }
+            if (village != null) {
+                activePatientListTitle = context.getString(R.string.analytics_village_outstanding_title, 
+                    if (isHindi) village.nameHindi.ifEmpty { village.name } else village.name)
+                activePatientList = uiState.outstandingPatientsList.filter { it.villageId == initialVillageId }
+            }
+        }
+    }
+
+    // Scroll to top when data is refreshed
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) {
+            scrollState.animateScrollToItem(0)
+        }
+    }
+
     var activeTransactionListTitle by remember { mutableStateOf<String?>(null) }
     var activeTransactionList by remember { mutableStateOf<List<com.clinicledger.ui.analytics.viewmodel.TransactionWithPatient>?>(null) }
 
@@ -79,25 +119,28 @@ fun AnalyticsContent(
             transactions = transactions,
             isHindi = isHindi,
             onDismiss = { activeTransactionList = null },
-            onNavigateToPatient = { patientId ->
-                activeTransactionList = null
-                onNavigateToPatientDetail(patientId)
-            }
-        )
+        ) { patientId ->
+            activeTransactionList = null
+            onNavigateToPatientDetail(patientId)
+        }
     }
 
     if (uiState.isLoading) {
         ClinicLoadingState()
     } else {
         LazyColumn(
-            modifier = Modifier
+            state = scrollState,
+            modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(MaterialTheme.colorScheme.background),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item(key = "cards_section", contentType = "summary") {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -109,7 +152,7 @@ fun AnalyticsContent(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activePatientListTitle = if (isHindi) "कुल बकायादार मरीज" else "Total Outstanding Patients"
+                                activePatientListTitle = context.getString(R.string.analytics_total_outstanding_patients)
                                 activePatientList = uiState.outstandingPatientsList
                             }
                         )
@@ -121,7 +164,7 @@ fun AnalyticsContent(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activeTransactionListTitle = if (isHindi) "आज प्राप्त संग्रह" else "Collected Today"
+                                activeTransactionListTitle = context.getString(R.string.analytics_collected_today)
                                 activeTransactionList = uiState.todayCollectedList
                             }
                         )
@@ -131,6 +174,22 @@ fun AnalyticsContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        AnalyticsCard(
+                            title = if (isHindi) "इस महीने का संग्रह" else "Total Monthly Collection",
+                            value = LocaleManager.formatCurrency(uiState.thisMonthCollected),
+                            icon = Icons.Rounded.CalendarMonth,
+                            color = Color(0xFF4CAF50),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                activeTransactionListTitle = context.getString(R.string.analytics_monthly_collection)
+                                scope.launch {
+                                    val monthStart = DateTimeUtils.getStartOfMonth()
+                                    val monthTxs = viewModel.getTransactionsSince(monthStart).filter { it.type == "payment" }
+                                    activeTransactionList = monthTxs
+                                }
+                            }
+                        )
+
                         val recoveryRateText = remember(uiState.recoveryRate) {
                             String.format(java.util.Locale.US, "%.1f%%", uiState.recoveryRate)
                         }
@@ -141,46 +200,37 @@ fun AnalyticsContent(
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activePatientListTitle = if (isHindi) "सक्रिय ऋणदाता" else "All Debtor Patients"
+                                activePatientListTitle = context.getString(R.string.analytics_all_debtors)
                                 activePatientList = uiState.outstandingPatientsList
-                            }
-                        )
-
-                        AnalyticsCard(
-                            title = if (isHindi) "इस महीने की दवा" else "Medicine Given (Month)",
-                            value = LocaleManager.formatCurrency(uiState.thisMonthMedicine),
-                            icon = Icons.Rounded.LocalPharmacy,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                activeTransactionListTitle = if (isHindi) "इस माह वितरित दवा" else "This Month's Medicine Ledger"
-                                activeTransactionList = uiState.thisMonthMedicineList
                             }
                         )
                     }
                 }
             }
 
-            item {
+            item(key = "village_breakdown_title") {
                 Text(
                     text = if (isHindi) "गाँव अनुसार बकाया विवरण" else "Dues Breakdown by Village",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
             if (uiState.villageDuesList.isEmpty()) {
-                item {
+                item(key = "empty_villages") {
                     ClinicEmptyState(
                         message = "No outstanding dues recorded.",
                         messageHindi = "कोई बकाया उपलब्ध नहीं है।"
                     )
                 }
             } else {
-                item {
+                item(key = "village_breakdown_card", contentType = "village_card") {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -193,7 +243,8 @@ fun AnalyticsContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            activePatientListTitle = if (isHindi) "${item.nameHindi.ifEmpty { item.name }} के बकायादार" else "${item.name} Outstanding Patients"
+                                            val vName = if (isHindi) item.nameHindi.ifEmpty { item.name } else item.name
+                                            activePatientListTitle = context.getString(R.string.analytics_village_outstanding_title, vName)
                                             activePatientList = uiState.outstandingPatientsList.filter { it.villageId == item.villageId }
                                         }
                                         .padding(vertical = 4.dp)
@@ -236,14 +287,19 @@ fun AnalyticsContent(
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
+                                    val barColor = when {
+                                        progress > 0.7f -> MaterialTheme.colorScheme.error
+                                        progress > 0.4f -> Color(0xFFFFA000) // Orange
+                                        else -> MaterialTheme.colorScheme.primary
+                                    }
                                     LinearProgressIndicator(
                                         progress = { progress },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(8.dp)
                                             .clip(RoundedCornerShape(4.dp)),
-                                        color = MaterialTheme.colorScheme.error,
-                                        trackColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                                        color = barColor,
+                                        trackColor = barColor.copy(alpha = 0.15f)
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                 }
@@ -253,18 +309,21 @@ fun AnalyticsContent(
                 }
             }
 
-            item {
+            item(key = "aging_title") {
                 Text(
                     text = if (isHindi) "बकाया समय सीमा (निष्क्रिय खाते)" else "Overdue Dues Aging (Inactive Accounts)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
-            item {
+            item(key = "aging_row") {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     DefaulterCard(
@@ -272,7 +331,7 @@ fun AnalyticsContent(
                         count = uiState.defaulters30Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = if (isHindi) "> 30 दिन निष्क्रिय बकायादार" else "> 30 Days Inactive Accounts"
+                            activePatientListTitle = context.getString(R.string.analytics_overdue_30)
                             activePatientList = uiState.defaulters30List
                         }
                     )
@@ -281,7 +340,7 @@ fun AnalyticsContent(
                         count = uiState.defaulters90Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = if (isHindi) "> 90 दिन निष्क्रिय बकायादार" else "> 90 Days Inactive Accounts"
+                            activePatientListTitle = context.getString(R.string.analytics_overdue_90)
                             activePatientList = uiState.defaulters90List
                         }
                     )
@@ -290,27 +349,27 @@ fun AnalyticsContent(
                         count = uiState.defaulters180Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = if (isHindi) "> 180 दिन निष्क्रिय बकायादार" else "> 180 Days Inactive Accounts"
+                            activePatientListTitle = context.getString(R.string.analytics_overdue_180)
                             activePatientList = uiState.defaulters180List
                         }
                     )
                 }
             }
 
-            item {
+            item(key = "top_debtors_title") {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable {
                             activePatientListTitle = if (isHindi) "कुल बकायादार मरीज" else "Total Outstanding Patients"
                             activePatientList = uiState.outstandingPatientsList
-                        }
-                        .padding(vertical = 4.dp),
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isHindi) "शीर्ष बकाया मरीज (अधिकतम से कम)" else "Top Outstanding Patients",
+                        text = if (isHindi) "शीर्ष ५ बकायादार मरीज" else "Top 5 Outstanding Debtors",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
@@ -320,20 +379,28 @@ fun AnalyticsContent(
                         text = if (isHindi) "सभी देखें" else "View All",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            activePatientListTitle = context.getString(R.string.analytics_total_outstanding_patients)
+                            activePatientList = uiState.outstandingPatientsList
+                        }
                     )
                 }
             }
 
             if (uiState.topPatientsWithDues.isEmpty()) {
-                item {
+                item(key = "empty_debtors") {
                     ClinicEmptyState(
                         message = "No patients with outstanding balance found.",
                         messageHindi = "कोई भी बकाया मरीज नहीं मिला।"
                     )
                 }
             } else {
-                itemsIndexed(uiState.topPatientsWithDues) { index, patient ->
+                itemsIndexed(
+                    items = uiState.topPatientsWithDues.take(5),
+                    key = { _, p -> "debtor_${p.id}" },
+                    contentType = { _, _ -> "patient" }
+                ) { index, patient ->
                     PatientListItem(
                         patient = patient,
                         index = index,
@@ -343,15 +410,15 @@ fun AnalyticsContent(
                 }
             }
 
-            item {
+            item(key = "inactive_title") {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable {
                             activePatientListTitle = if (isHindi) "६०+ दिनों से नहीं आए मरीज" else "Patients Not Visited in 60+ Days"
                             activePatientList = uiState.inactivePatients60Days
-                        }
-                        .padding(vertical = 4.dp),
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -372,197 +439,24 @@ fun AnalyticsContent(
             }
 
             if (uiState.inactivePatients60Days.isEmpty()) {
-                item {
+                item(key = "empty_inactive") {
                     ClinicEmptyState(
                         message = "All patients have visited recently.",
                         messageHindi = "कोई भी निष्क्रिय मरीज नहीं मिला।"
                     )
                 }
             } else {
-                itemsIndexed(uiState.inactivePatients60Days) { index, patient ->
+                itemsIndexed(
+                    items = uiState.inactivePatients60Days,
+                    key = { _, p -> "inactive_${p.id}" },
+                    contentType = { _, _ -> "patient" }
+                ) { index, patient ->
                     PatientListItem(
                         patient = patient,
                         index = index,
                         isHindi = isHindi,
                         onClick = { onNavigateToPatientDetail(patient.id) }
                     )
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(100.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PatientListDialog(
-    title: String,
-    patients: List<Patient>,
-    isHindi: Boolean,
-    onDismiss: () -> Unit,
-    onNavigateToPatient: (Long) -> Unit
-) {
-    var searchQuery by remember { mutableStateOf("") }
-    val filteredPatients = remember(searchQuery, patients) {
-        if (searchQuery.isBlank()) {
-            patients
-        } else {
-            patients.filter {
-                it.name.contains(searchQuery, ignoreCase = true) ||
-                (it.village?.name ?: "").contains(searchQuery, ignoreCase = true) ||
-                (it.village?.nameHindi ?: "").contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = if (isHindi) "कुल मरीज: ${patients.size}" else "Total Patients: ${patients.size}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Close")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text(if (isHindi) "मरीज खोजें..." else "Search patients...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    itemsIndexed(filteredPatients) { index, patient ->
-                        PatientListItem(
-                            patient = patient,
-                            index = index,
-                            isHindi = isHindi,
-                            onClick = { onNavigateToPatient(patient.id) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TransactionListDialog(
-    title: String,
-    transactions: List<com.clinicledger.ui.analytics.viewmodel.TransactionWithPatient>,
-    isHindi: Boolean,
-    onDismiss: () -> Unit,
-    onNavigateToPatient: (Long) -> Unit
-) {
-    val totalAmount = remember(transactions) { transactions.sumOf { it.amount } }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = if (isHindi) "कुल: ₹${LocaleManager.formatAmount(totalAmount)} (${transactions.size} लेनदेन)" else "Total: ₹${LocaleManager.formatAmount(totalAmount)} (${transactions.size} Tx)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Close"
-                            )
-
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (transactions.isEmpty()) {
-                        item {
-                            ClinicEmptyState(
-                                message = "No transactions found",
-                                messageHindi = "कोई लेनदेन नहीं मिला"
-                            )
-                        }
-                    } else {
-                        items(transactions) { item ->
-                            ClinicTransactionItem(
-                                transaction = com.clinicledger.data.models.Transaction(
-                                    patientId = item.patientId,
-                                    type = item.type,
-                                    amount = item.amount,
-                                    notes = item.notes
-                                ),
-                                patientName = item.patientName,
-                                villageName = item.villageName,
-                                isHindi = isHindi,
-                                onClick = { onNavigateToPatient(item.patientId) }
-                            )
-                        }
-                    }
                 }
             }
         }

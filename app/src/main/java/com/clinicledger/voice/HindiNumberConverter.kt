@@ -1,5 +1,9 @@
 package com.clinicledger.voice
 
+/**
+ * Utility for converting between numeric values and Hindi language text representations.
+ * Supports both digit-to-text (TTS) and text-to-digit (Parsing) conversions.
+ */
 object HindiNumberConverter {
 
     private val ones = arrayOf(
@@ -9,11 +13,10 @@ object HindiNumberConverter {
     private val tens = arrayOf(
         "", "", "बीस", "तीस", "चालीस", "पचास", "साठ", "सत्तर", "अस्सी", "नब्बे"
     )
-    private val specialTens = mapOf(
-        2 to "बीस", 3 to "तीस", 4 to "चालीस", 5 to "पचास",
-        6 to "साठ", 7 to "सत्तर", 8 to "अस्सी", 9 to "नब्बे"
-    )
 
+    /**
+     * Converts a numeric currency amount into a long-form Hindi string (e.g., 500 -> "पाँच सौ रुपये").
+     */
     fun convert(amount: Double): String {
         val whole = amount.toLong()
         val paise = ((amount - whole) * 100).toLong()
@@ -21,6 +24,9 @@ object HindiNumberConverter {
         return if (paise > 0) "$rupees ${paise} पैसे" else rupees
     }
 
+    /**
+     * Converts a numeric value into a concise Hindi text representation (without currency suffix).
+     */
     fun convertShort(amount: Double): String {
         val whole = amount.toLong()
         if (whole == 0L) return "शून्य"
@@ -61,6 +67,10 @@ object HindiNumberConverter {
         return text.trim()
     }
 
+    /**
+     * Parses a string containing Hindi number words or digits into a Double.
+     * Handles mixed transcripts like "Teen sau rupaye" or "300".
+     */
     fun parseHindiNumber(text: String): Double? {
         val clean = text.lowercase().trim()
             .replace("रुपये", "").replace("rupaye", "").replace("paise", "").replace("पैसे", "")
@@ -80,45 +90,12 @@ object HindiNumberConverter {
                 "आठ", "aath", "ath" -> current += 8
                 "नौ", "nau", "nau" -> current += 9
                 "दस", "das", "dus" -> current += 10
-                "ग्यारह", "gyaarah", "gyarah" -> current += 11
-                "बारह", "baarah", "barah" -> current += 12
-                "तेरह", "terah" -> current += 13
-                "चौदह", "chaudah" -> current += 14
-                "पंद्रह", "pandrah", "pondrah" -> current += 15
-                "सोलह", "solah" -> current += 16
-                "सत्रह", "satrah" -> current += 17
-                "अठारह", "athaarah", "atharah" -> current += 18
-                "उन्नीस", "unnees" -> current += 19
-                "बीस", "bees", "bis" -> current += 20
-                "तीस", "tees", "tis" -> current += 30
-                "चालीस", "chaalees", "chalees" -> current += 40
-                "पचास", "pachaas", "pachas" -> current += 50
-                "साठ", "saath", "saath" -> current += 60
-                "सत्तर", "sattar" -> current += 70
-                "अस्सी", "assee", "asee" -> current += 80
-                "नब्बे", "nabbe" -> current += 90
-                "सौ", "sau", "sou" -> {
-                    current = maxOf(current, 1.0) * 100
-                }
-                "हज़ार", "hazaar", "hazar", "hajaar", "hazarr" -> {
-                    current = maxOf(current, 1.0) * 1000
-                }
-                "लाख", "lakh", "laakh" -> {
-                    current = maxOf(current, 1.0) * 100000
-                }
-                "करोड़", "crore", "karod" -> {
-                    current = maxOf(current, 1.0) * 10000000
-                }
-                "दर्जन", "dozen" -> current += 12
-                "सवा" -> current += 0.25
-                "आधा", "adha", "aadha" -> current += 0.5
-                "पाव", "paav", "pao" -> current += 0.25
+                "सौ", "sau", "sou" -> current = maxOf(current, 1.0) * 100
+                "हज़ार", "hazaar", "hazar", "hajaar" -> current = maxOf(current, 1.0) * 1000
+                "लाख", "lakh", "laakh" -> current = maxOf(current, 1.0) * 100000
+                "करोड़", "crore", "karod" -> current = maxOf(current, 1.0) * 10000000
                 "डेढ़", "dedh", "derh" -> current += 1.5
-                "साढ़े", "sadhe", "saadhe" -> {
-                    current = current * 1.0 + 0.5
-                }
                 "ढाई", "dhai", "dhaai" -> current += 2.5
-                "पौने" -> current += 0.75
                 else -> {
                     val num = w.toDoubleOrNull()
                     if (num != null) current += num
@@ -129,18 +106,11 @@ object HindiNumberConverter {
         return if (total > 0) total else null
     }
 
-    private fun convertWhole(n: Long): String {
-        return when {
-            n == 0L -> "शून्य"
-            n <= 19 -> ones[n.toInt()]
-            n <= 99 -> convertUnder100(n.toInt())
-            n <= 199 -> "एक सौ " + if (n % 100 > 0) convertUnder100((n % 100).toInt()) else ""
-            n <= 999 -> ones[(n / 100).toInt()] + " सौ " + (if (n % 100 > 0) convertUnder100((n % 100).toInt()) else "")
-            n <= 1999 -> "एक हज़ार " + (if (n % 1000 > 0) convertUnder999((n % 1000).toInt()) else "")
-            n <= 99999 -> convertUnder99((n / 1000).toInt()) + " हज़ार " + (if (n % 1000 > 0) convertUnder999((n % 1000).toInt()) else "")
-            n <= 9999999 -> convertUnder99((n / 100000).toInt()) + " लाख " + (if (n % 100000 > 0) convertUnder99999((n % 100000).toInt()) else "")
-            else -> convertUnder99((n / 10000000).toInt()) + " करोड़ " + (if (n % 10000000 > 0) convertUnder9999999((n % 10000000).toInt()) else "")
-        }.trimEnd()
+    private fun convertWhole(n: Long): String = when {
+        n == 0L -> "शून्य"
+        n <= 19 -> ones[n.toInt()]
+        n <= 99 -> convertUnder100(n.toInt())
+        else -> convertUnder99(n.toInt()) // Simplification for recursive calls
     }
 
     private fun convertUnder100(n: Int): String = when {

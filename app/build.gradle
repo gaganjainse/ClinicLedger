@@ -78,6 +78,11 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+        }
+    }
 }
 
 /*
@@ -112,7 +117,9 @@ dependencies {
     implementation platform(libs.compose.bom)
     implementation libs.bundles.compose
 
-    testImplementation libs.junit
+    testImplementation libs.junit.jupiter.api
+    testRuntimeOnly libs.junit.jupiter.engine
+    testRuntimeOnly libs.junit.platform.launcher
     androidTestImplementation libs.test.ext.junit
     androidTestImplementation libs.espresso.core
 }

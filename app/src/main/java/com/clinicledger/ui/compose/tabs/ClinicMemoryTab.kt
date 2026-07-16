@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.clinicledger.R
 import com.clinicledger.data.models.FamilyGroup
@@ -33,6 +32,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Tab displaying "Clinic Memory" - a view of the patient network, villages, and families.
+ */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ClinicMemoryTab(
@@ -40,18 +42,19 @@ fun ClinicMemoryTab(
     onNavigateToDetail: (Long) -> Unit,
     villages: List<Village>,
     familyGroups: List<FamilyGroup>,
-    villageMap: Map<Long, String>
+    villageMap: Map<Long, String>,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var allPatients by remember { mutableStateOf<List<Patient>>(emptyList()) }
     var selectedVillageId by remember { mutableStateOf<Long?>(null) }
-    var showCreateFamilyDialog by remember { mutableStateOf(false) }
+    var showCreateFamilyDialog by remember { mutableStateOf(value = false) }
 
     var expandedFamilyGroupId by remember { mutableStateOf<Long?>(null) }
     var activeTreeFamilyGroup by remember { mutableStateOf<FamilyGroup?>(null) }
     var activeTreeMembers by remember { mutableStateOf<List<Patient>>(emptyList()) }
 
+    // Dialog for hierarchical family tree visualization
     activeTreeFamilyGroup?.let { family ->
         FamilyTreeDialog(
             familyName = LocaleManager.getLocalizedText(family.name),
@@ -79,6 +82,7 @@ fun ClinicMemoryTab(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Welcome Banner
         item {
             Spacer(modifier = Modifier.height(12.dp))
             Card(
@@ -125,6 +129,7 @@ fun ClinicMemoryTab(
             }
         }
 
+        // Village Network Filters
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -158,6 +163,7 @@ fun ClinicMemoryTab(
             }
         }
 
+        // Family Groups List
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -186,13 +192,17 @@ fun ClinicMemoryTab(
         }
 
         if (filteredFamilies.isEmpty()) {
-            item {
+            item(key = "empty_families") {
                 ClinicEmptyState(
                     message = stringResource(R.string.no_families_in_village_msg)
                 )
             }
         } else {
-            items(filteredFamilies, key = { it.id }) { family ->
+            items(
+                items = filteredFamilies, 
+                key = { it.id },
+                contentType = { "family_group" }
+            ) { family ->
                 val members = allPatients.filter { it.familyGroupId == family.id }
                 val isExpanded = expandedFamilyGroupId == family.id
                 val totalFamilyBalance = members.sumOf { it.currentBalance }
@@ -371,6 +381,7 @@ fun ClinicMemoryTab(
             }
         }
 
+        // Institutional Insights Footer
         item {
             Text(
                 text = stringResource(R.string.institutional_insights),
@@ -423,32 +434,35 @@ fun ClinicMemoryTab(
         }
     }
 
+    // Dialog for creating a new family
     if (showCreateFamilyDialog) {
         val successMsg = stringResource(R.string.new_family_toast)
         CreateFamilyGroupDialog(
             villages = villages,
             onDismiss = { showCreateFamilyDialog = false },
-            onCreate = { name, caste, headName, villageId ->
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        repository.insertFamilyGroup(
-                            FamilyGroup(
-                                name = name,
-                                caste = caste,
-                                familyHeadName = headName,
-                                villageId = villageId
-                            )
+        ) { name, caste, headName, villageId ->
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    repository.insertFamilyGroup(
+                        FamilyGroup(
+                            name = name,
+                            caste = caste,
+                            familyHeadName = headName,
+                            villageId = villageId
                         )
-                    }
-                    showCreateFamilyDialog = false
-                    refreshPatients()
-                    Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
+                    )
                 }
+                showCreateFamilyDialog = false
+                refreshPatients()
+                Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
             }
-        )
+        }
     }
 }
 
+/**
+ * Single statistical row in the Quick Facts card.
+ */
 @Composable
 fun FactRow(label: String, value: String, isError: Boolean = false) {
     Row(

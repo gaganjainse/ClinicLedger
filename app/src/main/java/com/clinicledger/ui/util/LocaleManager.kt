@@ -6,25 +6,38 @@ import androidx.core.content.edit
 import androidx.compose.runtime.staticCompositionLocalOf
 import java.util.Locale
 
+/**
+ * Central utility for handling app localization, bilingual string processing, and data formatting.
+ * Ensures consistent display of currency, dates, and patient names across the UI.
+ */
 object LocaleManager {
     /**
-     * CompositionLocal to provide the current language state (true for Hindi).
+     * CompositionLocal to provide the current language state (true for Hindi) down the Compose tree.
      */
     val LocalIsHindi = staticCompositionLocalOf { false }
 
     private const val PREFS_NAME = "clinic_ledger_prefs"
     private const val KEY_LANG = "selected_language"
 
+    /**
+     * Retrieves the saved language preference ("en" or "hi").
+     */
     fun getSavedLocale(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_LANG, "en") ?: "en"
     }
 
+    /**
+     * Persists the user's language preference.
+     */
     fun saveLocale(context: Context, lang: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit { putString(KEY_LANG, lang) }
     }
 
+    /**
+     * Applies the saved locale to the application resources.
+     */
     fun applyLocaleLegacy(context: Context) {
         val lang = getSavedLocale(context)
         val locale = Locale.forLanguageTag(lang)

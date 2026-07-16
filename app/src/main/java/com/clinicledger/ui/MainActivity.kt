@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
@@ -15,7 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.clinicledger.data.repository.PatientRepository
+import com.clinicledger.data.repository.TransactionRepository
+import com.clinicledger.service.ClinicToolbox
 import com.clinicledger.service.BackupService
+import com.clinicledger.service.SystemGuardian
 import com.clinicledger.ui.compose.*
 import com.clinicledger.ui.patientdetail.viewmodel.PatientDetailViewModel
 import com.clinicledger.ui.search.viewmodel.SearchViewModel
@@ -30,17 +35,26 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
+/**
+ * Screen route definitions for Navigation.
+ */
 sealed class Screen(val route: String) {
-    object Search : Screen("search")
-    object PatientDetail : Screen("patient_detail/{patientId}?patientName={patientName}") {
-        fun createRoute(patientId: Long, patientName: String? = null): String {
-            val encodedName = if (patientName != null) android.net.Uri.encode(patientName) else ""
-            return "patient_detail/$patientId?patientName=$encodedName"
-        }
+    object Dashboard : Screen("dashboard")
+    object PatientDetail : Screen("patient_detail/{patientId}") {
+        fun createRoute(patientId: Long) = "patient_detail/$patientId"
     }
     object AddPatient : Screen("add_patient")
+    object Analytics : Screen("analytics?villageId={villageId}") {
+        fun createRoute(villageId: Long? = null) = "analytics?villageId=${villageId ?: ""}"
+    }
+    object Settings : Screen("settings")
+    object Villages : Screen("villages")
 }
 
+/**
+ * Entry point of the application.
+ * Manages the top-level Composable Navigation Host and system permissions.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var searchViewModel: SearchViewModel
@@ -49,6 +63,9 @@ class MainActivity : AppCompatActivity() {
 
     private var showVoiceAssistantState = mutableStateOf(value = false)
 
+    /**
+     * Request launcher for Audio Record permission required by Voice Assistant.
+     */
     private val voicePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -60,16 +77,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Initialize locale before setting content
         LocaleManager.applyLocaleLegacy(this)
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         searchViewModel = ViewModelProvider(this)[SearchViewModel::class.java]
         detailViewModel = ViewModelProvider(this)[PatientDetailViewModel::class.java]
         analyticsViewModel = ViewModelProvider(this)[AnalyticsViewModel::class.java]
 
+        // Seed demo data if the DB is empty
         lifecycleScope.launch(Dispatchers.IO) {
             com.clinicledger.data.util.DataSeeder.seedDatabaseIfNeeded(this@MainActivity)
+            // Activate Agentic System Guardian
+            SystemGuardian(this@MainActivity).performHealthCheck()
         }
+        
+        // Start automatic backup scheduler
         BackupService.scheduleBackup(this)
 
         setContent {
@@ -85,12 +109,13 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Search.route,
+                            startDestination = Screen.Dashboard.route,
                             enterTransition = { fadeIn() },
                             exitTransition = { fadeOut() },
                         ) {
-                            composable(Screen.Search.route) {
-                                SearchScreen(
+                            // Main Dashboard Hub
+                            composable(Screen.Dashboard.route) {
+                                DashboardScreen(
                                     viewModel = searchViewModel,
                                     analyticsViewModel = analyticsViewModel,
                                     onNavigateToDetail = { id ->
@@ -102,12 +127,15 @@ class MainActivity : AppCompatActivity() {
                                     onOpenVoiceSheet = {
                                         triggerVoiceAssistant()
                                     },
-                                ) {
-                                    val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
-                                    val nextLang = if (currentLang == "hi") "en" else "hi"
-                                    setLocale(nextLang)
-                                }
+                                    onToggleLanguage = {
+                                        val currentLang = LocaleManager.getSavedLocale(this@MainActivity)
+                                        val nextLang = if (currentLang == "hi") "en" else "hi"
+                                        setLocale(nextLang)
+                                    }
+                                )
                             }
+                            
+                            // Registration Screen
                             composable(Screen.AddPatient.route) {
                                 AddPatientScreen(
                                     viewModel = searchViewModel,
@@ -118,15 +146,37 @@ class MainActivity : AppCompatActivity() {
                                     navController.popBackStack()
                                 }
                             }
+
+                            // Analytics Screen (Deep Linkable)
                             composable(
-                                route = Screen.PatientDetail.route,
+                                route = Screen.Analytics.route,
                                 arguments = listOf(
-                                    navArgument("patientId") { type = NavType.LongType },
-                                    navArgument("patientName") {
+                                    navArgument("villageId") {
                                         type = NavType.StringType
                                         nullable = true
                                         defaultValue = null
-                                    },
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val villageIdStr = backStackEntry.arguments?.getString("villageId")
+                                val villageId = villageIdStr?.toLongOrNull()
+                                
+                                AnalyticsScreen(
+                                    viewModel = analyticsViewModel,
+                                    initialVillageId = villageId,
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onNavigateHome = { navController.navigate(Screen.Dashboard.route) },
+                                    onNavigateToPatientDetail = { id: Long ->
+                                        navController.navigate(Screen.PatientDetail.createRoute(id))
+                                    }
+                                )
+                            }
+                            
+                            // Patient Record Screen
+                            composable(
+                                route = Screen.PatientDetail.route,
+                                arguments = listOf(
+                                    navArgument("patientId") { type = NavType.LongType }
                                 ),
                             ) { backStackEntry ->
                                 val patientId = backStackEntry.arguments?.getLong("patientId") ?: 0L
@@ -137,25 +187,44 @@ class MainActivity : AppCompatActivity() {
                                     onNavigateBack = {
                                         navController.popBackStack()
                                     },
-                                ) { id ->
-                                    navController.navigate(Screen.PatientDetail.createRoute(id))
-                                }
+                                    onNavigateToPatientDetail = { id ->
+                                        navController.navigate(Screen.PatientDetail.createRoute(id))
+                                    }
+                                )
                             }
                         }
                     }
 
+                    // Global Voice Assistant overlay
                     if (showVoiceAssistantState.value) {
+                        val repository = PatientRepository(this@MainActivity)
+                        val transactionRepository = TransactionRepository(this@MainActivity)
+                        val toolbox = remember { ClinicToolbox(this@MainActivity, repository, transactionRepository) }
+                        
                         VoiceInputSheetCompose(
                             onDismiss = { showVoiceAssistantState.value = false },
-                        ) { id ->
-                            navController.navigate(Screen.PatientDetail.createRoute(id))
-                        }
+                            onNavigateToPatientDetail = { id ->
+                                navController.navigate(Screen.PatientDetail.createRoute(id))
+                            },
+                            onNavigateToAnalytics = { villageId ->
+                                analyticsViewModel.refreshAnalytics()
+                                navController.navigate(Screen.Analytics.createRoute(villageId))
+                            },
+                            onRunRoutine = { protocolId ->
+                                lifecycleScope.launch {
+                                    toolbox.runRoutine(protocolId, navController, isHindi)
+                                }
+                            }
+                        )
                     }
                 }
             }
         }
     }
 
+    /**
+     * Checks for audio permissions and displays the voice assistant sheet.
+     */
     private fun triggerVoiceAssistant() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             == PackageManager.PERMISSION_GRANTED
@@ -166,6 +235,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Updates the user's preferred language and restarts the activity to apply changes.
+     */
     private fun setLocale(lang: String) {
         LocaleManager.saveLocale(this, lang)
         LocaleManager.applyLocaleLegacy(this)
