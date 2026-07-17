@@ -24,6 +24,8 @@ import com.clinicledger.R
 import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
 
+import androidx.compose.ui.draw.shadow
+
 /**
  * Hub for clinical records, search, and the modern AI assistant interface.
  * Cleaned up to use the shared Top Bar from MainDashboardScreen.
@@ -50,6 +52,8 @@ fun LedgerDashboardScreen(
     onStandardMicTap: () -> Unit,
     /** Callback for live mode tap (blue button) */
     onLiveModeTap: () -> Unit,
+    /** Normalized mic amplitude (0f to 1f) */
+    micAmplitude: Float = 0f,
     /** Callback for suggestion chip clicks */
     onSuggestionClick: (String) -> Unit,
     /** Current language state */
@@ -76,31 +80,31 @@ fun LedgerDashboardScreen(
             Column(
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)
+                modifier = Modifier.padding(bottom = 12.dp, start = 20.dp, end = 20.dp)
             ) {
                 // Flexible spacer to push suggestions lower
                 Spacer(Modifier.weight(1f))
 
-                // Suggestions List (Vertical as per screenshot)
+                // Suggestions List (Vertical with Black Circles as per Home Overlay.jpeg)
                 SuggestionRow(
                     title = if (isHindi) "आज का बकाया जांचें" else "Check Today's Dues",
                     icon = Icons.Rounded.MedicalServices,
                     onClick = { onSuggestionClick("Brief") }
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
                 SuggestionRow(
                     title = if (isHindi) "नया मरीज पंजीकृत करें" else "Register New Patient",
                     icon = Icons.Rounded.PersonAdd,
                     onClick = onNavigateToAddPatient
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
                 SuggestionRow(
                     title = if (isHindi) "आंकड़े देखें" else "View Analytics",
                     icon = Icons.Rounded.BarChart,
                     onClick = onNavigateToAnalytics
                 )
                 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
             }
         }
 
@@ -109,7 +113,8 @@ fun LedgerDashboardScreen(
             query = searchQuery,
             onQueryChange = onSearchChange,
             onMicTap = onStandardMicTap,
-            onLiveWaveTap = onLiveModeTap,
+            onLiveModeTap = onLiveModeTap,
+            micAmplitude = micAmplitude,
             onAddClick = { showPlusMenu = true },
             modifier = Modifier.navigationBarsPadding()
         )
@@ -131,7 +136,7 @@ fun LedgerDashboardScreen(
 }
 
 /**
- * Vertical suggestion item that looks like ChatGPT cards.
+ * Vertical suggestion item matching ChatGPT's white-on-black circle icons.
  */
 @Composable
 private fun SuggestionRow(
@@ -142,22 +147,31 @@ private fun SuggestionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(26.dp),
-            tint = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(Modifier.width(18.dp))
+        // White icon inside black circle as per Home Overlay.jpeg
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.Black, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = Color.White
+            )
+        }
+        Spacer(Modifier.width(16.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
-            fontSize = 18.sp
+            fontSize = 17.sp
         )
     }
 }
@@ -170,7 +184,8 @@ private fun ChatAssistantBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onMicTap: () -> Unit,
-    onLiveWaveTap: () -> Unit,
+    onLiveModeTap: () -> Unit,
+    micAmplitude: Float,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -183,14 +198,14 @@ private fun ChatAssistantBar(
     ) {
         // Main Pill Search Bar
         Surface(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).height(64.dp),
             shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(0.2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
         ) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 6.dp, vertical = 6.dp)
+                    .padding(horizontal = 8.dp)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -237,44 +252,52 @@ private fun ChatAssistantBar(
         Surface(
             modifier = Modifier
                 .size(52.dp)
-                .clickable(onClick = onLiveWaveTap),
+                .clickable(onClick = onLiveModeTap),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary
         ) {
             Box(contentAlignment = Alignment.Center) {
-                LiveWaveIcon()
+                LiveWaveIcon(amplitude = micAmplitude)
             }
         }
     }
 }
 
 /**
- * Animated wave icon with high-performance animations and ChatGPT-style complexity.
+ * Animated wave icon simplified to 4 bars matching ChatGPT's dashboard blue button.
  */
 @Composable
-private fun LiveWaveIcon() {
+private fun LiveWaveIcon(amplitude: Float = 0.5f) {
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
     
     Row(
-        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 7-bar complexity as per screenshot style
-        val heights = listOf(0.3f, 0.5f, 0.8f, 1f, 0.7f, 0.4f, 0.2f)
-        heights.forEachIndexed { index, baseHeight ->
-            val animatedHeight by infiniteTransition.animateFloat(
-                initialValue = baseHeight * 0.3f,
-                targetValue = baseHeight,
+        // 4-bar complexity matching ChatGPT blue button exactly as per Home Overlay.jpeg
+        val baseHeights = listOf(0.4f, 0.8f, 1f, 0.6f)
+        baseHeights.forEachIndexed { index, baseHeight ->
+            val phase by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 2f * Math.PI.toFloat(),
                 animationSpec = infiniteRepeatable(
-                    animation = tween(400 + index * 60, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
+                    animation = tween(700 + index * 120, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
                 ),
+                label = "phase"
+            )
+            
+            // Combine phase-based oscillation with mic amplitude
+            val animatedHeight by animateFloatAsState(
+                targetValue = baseHeight * (0.5f + 0.5f * kotlin.math.sin(phase)) * (1f + amplitude * 0.5f),
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
                 label = "bar"
             )
+            
             Box(
                 modifier = Modifier
-                    .width(2.5.dp)
-                    .height((20.dp * animatedHeight))
+                    .width(2.2.dp)
+                    .height((16.dp * animatedHeight).coerceAtLeast(3.dp))
                     .clip(CircleShape)
                     .background(Color.White)
             )

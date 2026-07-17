@@ -35,8 +35,9 @@ fun VoiceInputSheetCompose(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val interactionMode by viewModel.interactionMode.collectAsState()
     val transcript by viewModel.transcript.collectAsState()
-    val rmsDb by viewModel.rmsDb.collectAsState()
+    val normalizedAmplitude by viewModel.normalizedAmplitude.collectAsState()
     val parsedIntent by viewModel.parsedIntent.collectAsState()
     val patients by viewModel.disambiguationPatients.collectAsState()
     val isHindi = LocaleManager.LocalIsHindi.current
@@ -81,36 +82,35 @@ fun VoiceInputSheetCompose(
         if (state == ConversationState.PROCESSING) speechRecognizer.stopListening()
     }
 
-    when (state) {
-        ConversationState.LISTENING_LIVE -> {
-            LiveVoiceOverlay(
-                rmsDb = rmsDb,
-                transcript = transcript,
-                onDismiss = onDismiss
-            )
-        }
-        else -> {
-            StandardMicOverlay(
-                state = state,
-                transcript = transcript,
-                rmsDb = rmsDb,
-                parsedIntent = parsedIntent,
-                patients = patients,
-                onDismiss = onDismiss,
-                onConfirm = { patientId ->
-                    viewModel.confirmAction(
-                        confirmedPatientId = patientId,
-                        onNavigateToPatientDetail = onNavigateToPatientDetail,
-                        onNavigateToAnalytics = onNavigateToAnalytics,
-                        onRunRoutine = onRunRoutine,
-                        onDone = onDismiss,
-                    )
-                },
-                onCancelConfirm = { viewModel.setState(ConversationState.IDLE) },
-                onSend = { viewModel.finalizeTranscription(isHindi) },
-                onTeach = { toolId -> viewModel.teachSkill(toolId) }
-            )
-        }
+    if (interactionMode == VoiceInteractionMode.LIVE) {
+        // Strict Full Screen Live Mode implementation
+        LiveVoiceOverlay(
+            amplitude = normalizedAmplitude,
+            transcript = transcript,
+            onDismiss = onDismiss
+        )
+    } else {
+        // Strict Standard Mic Bottom Sheet implementation
+        StandardMicOverlay(
+            state = state,
+            transcript = transcript,
+            amplitude = normalizedAmplitude,
+            parsedIntent = parsedIntent,
+            patients = patients,
+            onDismiss = onDismiss,
+            onConfirm = { patientId ->
+                viewModel.confirmAction(
+                    confirmedPatientId = patientId,
+                    onNavigateToPatientDetail = onNavigateToPatientDetail,
+                    onNavigateToAnalytics = onNavigateToAnalytics,
+                    onRunRoutine = onRunRoutine,
+                    onDone = onDismiss,
+                )
+            },
+            onCancelConfirm = { viewModel.setState(ConversationState.IDLE) },
+            onSend = { viewModel.finalizeTranscription(isHindi) },
+            onTeach = { toolId -> viewModel.teachSkill(toolId) }
+        )
     }
 
     DisposableEffect(Unit) {

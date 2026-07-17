@@ -16,6 +16,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,13 +37,13 @@ import kotlinx.coroutines.launch
  */
 enum class NavItem(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val label: String,
+    val labelRes: Int,
     val route: String
 ) {
-    MEMORY(Icons.Rounded.Psychology, "Memory", "MEMORY"),
-    JOURNAL(Icons.AutoMirrored.Rounded.MenuBook, "Journal", "JOURNAL"),
-    ANALYTICS(Icons.Rounded.BarChart, "Analytics", "ANALYTICS"),
-    SETTINGS(Icons.Rounded.Settings, "Settings", "SETTINGS"),
+    MEMORY(Icons.Rounded.Psychology, R.string.tab_memory, "MEMORY"),
+    JOURNAL(Icons.AutoMirrored.Rounded.MenuBook, R.string.nav_journal, "JOURNAL"),
+    ANALYTICS(Icons.Rounded.BarChart, R.string.nav_analytics, "ANALYTICS"),
+    SETTINGS(Icons.Rounded.Settings, R.string.nav_settings, "SETTINGS"),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,6 +83,7 @@ fun MainDashboardScreen(
     val allTransactions by viewModel.allTransactions.observeAsState(emptyList())
     val familyGroups by viewModel.familyGroups.observeAsState(emptyList())
     val villages by viewModel.villages.observeAsState(emptyList())
+    val normalizedAmplitude by voiceViewModel.normalizedAmplitude.collectAsState()
     
     var searchQuery by remember { mutableStateOf("") }
     var journalQuery by remember { mutableStateOf("") }
@@ -121,14 +123,19 @@ fun MainDashboardScreen(
                     IconButton(
                         onClick = { scope.launch { drawerState.open() } },
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
+                            .shadow(
+                                elevation = 4.dp,
+                                shape = CircleShape,
+                                spotColor = Color.Black.copy(alpha = 0.2f)
+                            )
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .background(MaterialTheme.colorScheme.surface)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Menu,
                             contentDescription = "Menu",
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
@@ -136,7 +143,7 @@ fun MainDashboardScreen(
                     if (selectedRoute != "LEDGER") {
                         Text(
                             text = selectedRoute.lowercase().replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -147,14 +154,19 @@ fun MainDashboardScreen(
                             searchQuery = ""
                         },
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
+                            .shadow(
+                                elevation = 4.dp,
+                                shape = CircleShape,
+                                spotColor = Color.Black.copy(alpha = 0.2f)
+                            )
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .background(MaterialTheme.colorScheme.surface)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.ChatBubbleOutline,
                             contentDescription = "New Chat",
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -179,11 +191,14 @@ fun MainDashboardScreen(
                             }
                         },
                         onStandardMicTap = {
+                            voiceViewModel.setInteractionMode(VoiceInteractionMode.STANDARD)
                             onMicTap(ConversationState.LISTENING)
                         },
                         onLiveModeTap = {
+                            voiceViewModel.setInteractionMode(VoiceInteractionMode.LIVE)
                             onMicTap(ConversationState.LISTENING_LIVE)
                         },
+                        micAmplitude = normalizedAmplitude,
                         onSuggestionClick = { suggestion ->
                             if (suggestion.contains("Brief") || suggestion.contains("सारांश")) {
                                 voiceViewModel.processTranscript("Morning Brief", isHindi)
@@ -277,7 +292,7 @@ private fun ChatGPTDrawerContent(
             NavItem.entries.forEach { item ->
                 DrawerItem(
                     icon = item.icon,
-                    label = item.label,
+                    label = stringResource(item.labelRes),
                     selected = selectedRoute == item.route,
                     onClick = { onItemClick(item.route) }
                 )

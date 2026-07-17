@@ -1,44 +1,24 @@
-# Implementation Plan - UI Overhaul and Feature Removal
+# UI Automation and Comparison Script
 
-Overhaul the landing dashboard to match a modern, minimal AI assistant style (similar to ChatGPT). This includes removing the legacy "Morning Brief" snapshot, disabling push-to-talk (PTT) for the microphone, and adding interactive suggestion chips.
-
-## User Review Required
-
-> [!IMPORTANT]
-> The "Hold the Mic" (PTT) feature will be completely removed in favor of a single-tap activation, as requested.
-> The "Morning Brief" is now a suggestion rather than a permanent dashboard section.
+Create a Python script to automate the comparison between Clinic Ledger and ChatGPT on an Android device. The script will handle side-by-side execution, UI exploration, data collection, and periodic screen captures.
 
 ## Proposed Changes
 
-### [Dashboard Overhaul]
+### [NEW] [ui_automation.py](file:///C:/Users/gagan/Downloads/ClinicLedger-main/ui_automation.py)
 
-#### [MODIFY] [LedgerDashboardScreen.kt](file:///C:/Users/gagan/Downloads/ClinicLedger-main/app/src/main/java/com/clinicledger/ui/compose/LedgerDashboardScreen.kt)
-- Remove `MorningBriefSection` from the top.
-- Replace the center icon and greeting with "Clinic Ledger" text.
-- Add three suggestion chips: "Morning Brief", "New Registration", and "View Analytics".
-- Update `ChatAssistantBar` to remove `detectTapGestures` PTT logic, making it a simple `IconButton` click.
-
-#### [MODIFY] [MainActivity.kt](file:///C:/Users/gagan/Downloads/ClinicLedger-main/app/src/main/java/com/clinicledger/ui/MainActivity.kt)
-- Simplify mic callbacks to handle only tap events.
-- Remove PTT-specific state management.
-
-### [Voice Interaction Enhancements]
-
-#### [MODIFY] [VoiceInputSheetCompose.kt](file:///C:/Users/gagan/Downloads/ClinicLedger-main/app/src/main/java/com/clinicledger/ui/compose/VoiceInputSheetCompose.kt)
-- Enhance `ListeningAnim` with a "live" shrinking/expanding circle and an audio wave simulation.
-- Use `rmsDb` from the speech recognizer to drive the animation if possible (requires ViewModel update).
-
-#### [MODIFY] [VoiceAssistantViewModel.kt](file:///C:/Users/gagan/Downloads/ClinicLedger-main/app/src/main/java/com/clinicledger/ui/compose/VoiceAssistantViewModel.kt)
-- Add a `rmsDb` state to track live audio levels for the animation.
+A standalone Python script that uses `adb` to:
+1.  **Launch Apps**: Open `com.clinicledger` and `com.openai.chatgpt`.
+2.  **Split Screen**: Attempt to put the apps in split-screen mode (side-by-side).
+3.  **UI Exploration**: Crawl through the navigable components of both apps (focusing on ChatGPT as requested).
+4.  **Data Collection**: Extract text, resource IDs, and component types from the UI hierarchy.
+5.  **Periodic Screenshots**: Capture the screen every second and save to a dedicated folder.
+6.  **Comparison Report**: Save the collected data in a structured format (e.g., JSON) for further AI analysis.
 
 ## Verification Plan
 
-### Automated Tests
-- Run `app:assembleDebug` to ensure compilation.
-
 ### Manual Verification
-- Verify the dashboard shows "Clinic Ledger" without an icon.
-- Verify the three suggestions are visible and functional.
-- Verify the mic button starts the assistant on a single tap.
-- Observe the "live" audio wave and expanding circle animations during voice input.
-- Verify the navigation bar size remains unchanged.
+- The user will be asked to unlock the device.
+- The user will run the script and verify that:
+    - Apps are launched and positioned correctly.
+    - Screenshots are being saved.
+    - UI data is being collected.

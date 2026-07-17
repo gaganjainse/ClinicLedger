@@ -24,6 +24,8 @@ import com.clinicledger.voice.ParsedVoiceIntent
 import com.clinicledger.ui.compose.components.IntentConfirmation
 import com.clinicledger.ui.compose.components.TeachingOverlay
 
+import com.clinicledger.ui.compose.components.EqualizerWaveform
+
 /**
  * Standard Mic Overlay: Optimized for transcription and editing.
  * Matches Screenshot 3 from the provided templates.
@@ -33,7 +35,7 @@ import com.clinicledger.ui.compose.components.TeachingOverlay
 fun StandardMicOverlay(
     state: ConversationState,
     transcript: String,
-    rmsDb: Float,
+    amplitude: Float,
     parsedIntent: ParsedVoiceIntent?,
     patients: List<Patient>,
     onDismiss: () -> Unit,
@@ -44,7 +46,7 @@ fun StandardMicOverlay(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = Color(0xFFF9F9F9), // ChatGPT signature off-white
         dragHandle = null,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -54,7 +56,7 @@ fun StandardMicOverlay(
                 .padding(bottom = 32.dp, top = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // High-Visibility Transcript Area
+            // High-Visibility Transcript Area (Screenshot 3)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,28 +102,11 @@ fun StandardMicOverlay(
                         Icon(Icons.Rounded.Close, "Dismiss", modifier = Modifier.size(26.dp))
                     }
 
-                    // Centered Dynamic Waveform
-                    Row(
+                    // Centered Dynamic Equalizer Waveform
+                    EqualizerWaveform(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        repeat(18) { i ->
-                            val barScale by animateFloatAsState(
-                                targetValue = (rmsDb.coerceAtLeast(0f) / 20f) * (1f - (kotlin.math.abs(i - 9) / 9f)),
-                                animationSpec = spring(stiffness = Spring.StiffnessLow),
-                                label = "bar"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .width(3.2.dp)
-                                    .height(12.dp + 32.dp * barScale)
-                                    .padding(horizontal = 1.2.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray.copy(alpha = 0.4f + 0.2f * barScale))
-                            )
-                        }
-                    }
+                        amplitude = amplitude
+                    )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically, 

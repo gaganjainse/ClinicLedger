@@ -36,6 +36,12 @@ enum class ConversationState {
     /** AI consultation */ ASK_AI
 }
 
+/** Modes of voice interaction. */
+enum class VoiceInteractionMode {
+    /** Standard transcript-based overlay */ STANDARD,
+    /** Full-screen conversational mode */ LIVE
+}
+
 /**
  * ViewModel managing the state and logic for the Voice Assistant sheet.
  */
@@ -43,6 +49,17 @@ enum class ConversationState {
 class VoiceAssistantViewModel(
     /** App context */ application: Application,
 ) : AndroidViewModel(application) {
+
+    private val _interactionMode = MutableStateFlow(value = VoiceInteractionMode.STANDARD)
+    /** Current overlay type being displayed (Standard vs Live) */
+    val interactionMode: StateFlow<VoiceInteractionMode> = _interactionMode.asStateFlow()
+
+    /**
+     * Toggles between standard transcript-based UI and full-screen conversational UI.
+     */
+    fun setInteractionMode(mode: VoiceInteractionMode) {
+        _interactionMode.value = mode
+    }
 
     private val database = ClinicLedgerDatabase.getDatabase(application)
     private val repository = com.clinicledger.data.repository.PatientRepository(application)
@@ -74,6 +91,10 @@ class VoiceAssistantViewModel(
     private val _rmsDb = MutableStateFlow(value = 0f)
     /** Real-time audio levels */
     val rmsDb: StateFlow<Float> = _rmsDb.asStateFlow()
+
+    private val _normalizedAmplitude = MutableStateFlow(value = 0f)
+    /** Normalized mic amplitude (0f to 1f) for buttery smooth animations */
+    val normalizedAmplitude: StateFlow<Float> = _normalizedAmplitude.asStateFlow()
 
     private val _parsedIntent = MutableStateFlow<ParsedVoiceIntent?>(value = null)
     /** Result of semantic parsing */
@@ -113,6 +134,10 @@ class VoiceAssistantViewModel(
      */
     fun updateRmsDb(value: Float) {
         _rmsDb.value = value
+        // More sensitive normalization for speech nuances
+        // Typical speech RMS range is around 0..10. -2 is silence.
+        val normalized = ((value + 1f) / 10f).coerceIn(0f, 1f)
+        _normalizedAmplitude.value = normalized
     }
 
     /**
