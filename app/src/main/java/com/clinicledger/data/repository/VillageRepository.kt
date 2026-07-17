@@ -4,104 +4,84 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import com.clinicledger.data.local.ClinicLedgerDatabase
 import com.clinicledger.data.models.Village
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
- * Repository for managing village data.
- * Implements in-memory caching to reduce database hits for frequently accessed static data.
+ * Repository for managing village records and bilingual normalization.
  */
-class VillageRepository(context: Context) {
+class VillageRepository(/** App context */ context: Context) {
+
     private val database = ClinicLedgerDatabase.getDatabase(context)
     private val villageDao = database.villageDao()
-    
-    companion object {
-        @Volatile
-        private var cachedVillages: List<Village>? = null
-        private val cacheMutex = Mutex()
+
+    /**
+     * Inserts a village record.
+     */
+    suspend fun insertVillage(/** Model to insert */ village: Village): Long {
+        return villageDao.insertVillage(village)
     }
 
     /**
-     * Inserts a new village. Invalidates the cache on success.
+     * Updates an existing village record.
      */
-    suspend fun insertVillage(village: Village): Long {
-        val updatedVillage = translateVillageBilingual(village)
-        return villageDao.insertVillage(updatedVillage).also {
-            invalidateCache()
-        }
+    suspend fun updateVillage(/** Updated model */ village: Village) {
+        villageDao.updateVillage(village)
     }
 
     /**
-     * Updates an existing village. Invalidates the cache on success.
+     * Deletes a village record.
      */
-    suspend fun updateVillage(village: Village) {
-        val updatedVillage = translateVillageBilingual(village)
-        villageDao.updateVillage(updatedVillage)
-        invalidateCache()
-    }
-
-    /**
-     * Deletes a village. Invalidates the cache on success.
-     */
-    suspend fun deleteVillage(village: Village) {
+    suspend fun deleteVillage(/** Model to delete */ village: Village) {
         villageDao.deleteVillage(village)
-        invalidateCache()
     }
-    
+
     /**
-     * Returns an observable list of all villages.
-     */
-    fun getAllVillages(): LiveData<List<Village>> = villageDao.getAllVillages()
-    
-    /**
-     * Returns a snapshot of all villages, using the in-memory cache if available.
+     * Non-observable resolution of all villages.
      */
     suspend fun getAllVillagesSync(): List<Village> {
-        cachedVillages?.let { return it }
-        
-        return cacheMutex.withLock {
-            cachedVillages?.let { return@withLock it }
-            val villages = villageDao.getAllVillagesSync()
-            cachedVillages = villages
-            villages
-        }
-    }
-
-    private suspend fun invalidateCache() {
-        cacheMutex.withLock {
-            cachedVillages = null
-        }
+        return villageDao.getAllVillagesSync()
     }
 
     /**
-     * Utility to automatically split "English / Hindi" inputs into correct columns.
-     * Updated to be smarter about preserving existing data during partial edits.
+     * Observable list of all villages.
      */
-    private fun translateVillageBilingual(village: Village): Village {
-        val rawName = village.name.trim()
-        val rawHindi = village.nameHindi.trim()
-        
-        // If it's a combined string "Eng / Hin"
-        if (rawName.contains("/")) {
-            val parts = rawName.split("/").map { it.trim() }
-            if (parts.size >= 2) {
-                val eng = parts[0]
-                val hin = parts[1]
-                return village.copy(
-                    name = eng.ifEmpty { hin },
-                    nameHindi = hin.ifEmpty { eng },
-                )
+    fun getAllVillages(): LiveData<List<Village>> {
+        return villageDao.getAllVillages()
+    }
+
+    /**
+     * Wipes the entire villages table.
+     */
+    suspend fun deleteAll() {
+        villageDao.deleteAll()
+    }
+
+    /**
+     * Formats a raw village name string into a bilingual [Village] model.
+     * Logic: Splits by '/' or detects Hindi characters.
+     */
+    fun normalizeVillage(/** raw string */ input: String): Village {
+        val parts = input.split("/")
+        var rawName = ""
+        var rawHindi = ""
+
+        if (parts.size >= 2) {
+            rawName = parts[0].trim()
+            rawHindi = parts[1].trim()
+        } else {
+            rawName = input.trim()
+            val nameHasHindi = rawName.any { it in '\u0900'..'\u097F' }
+            if (nameHasHindi) {
+                rawHindi = rawName
+                rawName = ""
             }
         }
-        
-        // If name contains Hindi and nameHindi is empty, split or duplicate
-        val nameHasHindi = rawName.any { it in '\u0900'..'\u097F' }
-        val finalName = if (rawName.isBlank()) rawHindi else rawName
-        val finalHindi = if (rawHindi.isBlank()) (if (nameHasHindi) rawName else "") else rawHindi
-        
-        return village.copy(
+
+        val finalName = rawName.ifBlank { rawHindi }
+        val finalHindi = rawHindi.ifBlank { "" }
+
+        return Village(
             name = finalName,
-            nameHindi = finalHindi
+            nameHindi = finalHindi,
         )
     }
 }

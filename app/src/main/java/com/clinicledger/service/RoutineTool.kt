@@ -1,32 +1,35 @@
 package com.clinicledger.service
 
 import androidx.navigation.NavController
+import com.clinicledger.R
 
 /**
- * Defines and executes "Clinical Protocols" which are sequences of app actions.
- * Allows the doctor to trigger complex workflows with a single command.
+ * Executes high-level clinical workflows (Routines).
+ * Example: Morning rounds or data audit protocols.
  */
-class RoutineTool(private val toolbox: ClinicalActionToolbox) {
+@Suppress("HardcodedStringLiteral")
+class RoutineTool(/** actions */ private val toolbox: ClinicalActionToolbox) {
 
     /**
-     * Executes a named protocol.
-     * @return A spoken confirmation of the actions taken.
+     * Runs a specified protocol workflow.
      */
-    suspend fun runProtocol(protocolId: String, navController: NavController, isHindi: Boolean): String {
-        return when (protocolId.uppercase()) {
+    fun runProtocol(
+        /** ID */ protocolId: String, 
+        /** UI state */ navController: NavController,
+    ): String {
+        val context = toolbox.context
+        return when (protocolId) {
             "MORNING_CHECK" -> {
-                // 1. Get Summary
-                val summary = toolbox.getSummary(isHindi)
-                // 2. Open Analytics
                 toolbox.navigateTo(navController, "ANALYTICS")
-                summary
+                context.getString(R.string.opening_snapshots_msg)
             }
             "QUICK_START" -> {
-                // 1. Open Add Patient
                 toolbox.navigateTo(navController, "ADD_PATIENT")
-                if (isHindi) "नया मरीज जोड़ने का स्क्रीन खोल दिया है।" else "Opening Add Patient screen."
+                context.getString(R.string.opening_add_patient_msg)
             }
-            else -> if (isHindi) "यह रूटीन मुझे नहीं पता।" else "I don't know this routine."
+            else -> {
+                context.getString(R.string.unknown_routine_msg)
+            }
         }
     }
 }

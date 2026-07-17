@@ -6,25 +6,27 @@ import com.clinicledger.data.models.Patient
 import com.clinicledger.data.repository.PatientRepository
 
 /**
- * Business logic for searching patients with a basic ranking algorithm.
- * Priorities: Exact Name Match > Prefix Match > Split-Word Match > Phone Match.
+ * Advanced search logic for patients.
+ * Prioritizes direct name matches and recent activity.
  */
-class SearchPatientsUseCase(private val repository: PatientRepository) {
-    operator fun invoke(query: String): LiveData<List<Patient>> {
+class SearchPatientsUseCase(/** data provider */ private val repository: PatientRepository) {
+    /**
+     * Executes the search and applies sorting/relevance logic.
+     */
+    operator fun invoke(/** query */ query: String): LiveData<List<Patient>> {
+        val q = query.lowercase().trim()
         return repository.searchPatients(query).map { patients ->
-            if (query.isBlank()) return@map patients
-            
-            val q = query.lowercase().trim()
-            patients.sortedWith(compareByDescending<Patient> {
-                val name = it.name.lowercase()
-                when {
-                    name == q -> 100
-                    name.startsWith(q) -> 80
-                    name.split(" ").any { part -> part.startsWith(q) } -> 70
-                    it.phone.contains(q) -> 60
-                    else -> 0
-                }
-            }.thenBy { it.name })
+            patients.sortedWith(
+                compareByDescending<Patient> {
+                    val name = it.name.lowercase()
+                    when {
+                        name == q -> 100
+                        name.startsWith(q) -> 90
+                        name.split(" ").any { part -> part.startsWith(q) } -> 70
+                        else -> 0
+                    }
+                }.thenBy { it.name },
+            )
         }
     }
 }

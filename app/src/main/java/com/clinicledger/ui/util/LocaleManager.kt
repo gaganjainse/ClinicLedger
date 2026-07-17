@@ -2,122 +2,169 @@ package com.clinicledger.ui.util
 
 import android.content.Context
 import android.content.res.Configuration
-import androidx.core.content.edit
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.core.content.edit
 import java.util.Locale
 
 /**
- * Central utility for handling app localization, bilingual string processing, and data formatting.
- * Ensures consistent display of currency, dates, and patient names across the UI.
+ * Global utility for localization and formatting.
+ * Manages the bilingual (Hindi/English) states and currency formatting.
  */
+@Suppress("HardcodedStringLiteral")
 object LocaleManager {
-    /**
-     * CompositionLocal to provide the current language state (true for Hindi) down the Compose tree.
+
+    /** 
+     * CompositionLocal to provide current language state.
      */
-    val LocalIsHindi = staticCompositionLocalOf { false }
+    val LocalIsHindi: ProvidableCompositionLocal<Boolean> = staticCompositionLocalOf { false }
 
     private const val PREFS_NAME = "clinic_ledger_prefs"
     private const val KEY_LANG = "selected_language"
 
-    /**
-     * Retrieves the saved language preference ("en" or "hi").
+    /** 
+     * Retrieves the manually saved locale code from preferences.
      */
-    fun getSavedLocale(context: Context): String {
+    fun getSavedLocale(/** context */ context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_LANG, "en") ?: "en"
     }
 
-    /**
-     * Persists the user's language preference.
+    /** 
+     * Persists a new locale code (en, hi).
      */
-    fun saveLocale(context: Context, lang: String) {
+    fun saveLocale(/** context */ context: Context, /** code */ lang: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit { putString(KEY_LANG, lang) }
     }
 
-    /**
-     * Applies the saved locale to the application resources.
+    /** 
+     * Applies the locale configuration to a Context (Legacy View System).
      */
-    fun applyLocaleLegacy(context: Context) {
+    @Suppress("DEPRECATION")
+    fun applyLocaleLegacy(/** context */ context: Context) {
         val lang = getSavedLocale(context)
-        val locale = Locale.forLanguageTag(lang)
+        val locale = Locale(lang)
         Locale.setDefault(locale)
-        val config = Configuration(context.resources.configuration)
+        val config = Configuration()
         config.setLocale(locale)
-        @Suppress("DEPRECATION")
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
 
-    /**
-     * Extracts the appropriate language substring from a bilingual string formatted as "English / Hindi".
+    /** 
+     * Extracts localized text from a bilingual string format "English / Hindi".
      */
-    fun getLocalizedText(text: String?): String {
+    fun getLocalizedText(/** text */ text: String?): String {
         if (text == null) return ""
-        if (!text.contains(" / ")) return text
+        val isHindi = Locale.getDefault().language == "hi"
         val parts = text.split(" / ")
-        if (parts.size >= 2) {
-            val isHindi = Locale.getDefault().language == "hi"
-            return if (isHindi) parts[1].trim() else parts[0].trim()
+        return if (parts.size >= 2) {
+            if (isHindi) parts[1] else parts[0]
+        } else {
+            text
         }
-        return text
     }
 
-    /**
-     * Extracts localized text and formats it to Title Case (Aa Bb) if it contains English characters.
+    /** 
+     * Formats a patient name for list display.
      */
-    fun formatPatientName(text: String?): String {
-        if (text == null) return ""
-        val localized = getLocalizedText(text)
-        if (localized.any { it.isLetter() }) {
-            return localized.split(" ")
-                .asSequence()
-                .filter { it.isNotEmpty() }
-                .joinToString(" ") { word ->
-                    word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    fun formatPatientName(/** full name */ text: String): String {
+        val base = getLocalizedText(text)
+        return base.split(" ")
+            .joinToString(" ") { word ->
+                word.replaceFirstChar { 
+                    if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
                 }
-        }
-        return localized
+            }
     }
 
-    /**
-     * Localizes a village name using its English and Hindi fields.
+    /** 
+     * Resolves a village name based on available bilingual fields.
      */
-    fun getLocalizedVillage(name: String, nameHindi: String?): String {
+    fun getLocalizedVillage(
+        /** Primary */ name: String, 
+        /** Optional Hindi */ nameHindi: String?,
+    ): String {
         val isHindi = Locale.getDefault().language == "hi"
         return if (isHindi && !nameHindi.isNullOrBlank()) nameHindi else name
     }
 
-    /**
-     * Formats a double value as a string.
-     * Shows decimals only if they are non-zero.
+    /** 
+     * Formats Paise amounts into human readable strings (e.g. 500 -> "5.00").
      */
-    fun formatAmount(amount: Double): String {
-        return if ((amount % 1.0) == 0.0) amount.toLong().toString() else String.format(Locale.US, "%.2f", amount)
+    fun formatAmount(/** input */ amountPaise: Long): String {
+        val amount = amountPaise / 100.0
+        return if ((amountPaise % 100) == 0L) {
+            amount.toLong().toString()
+        } else {
+            String.format(Locale.US, "%.2f", amount)
+        }
     }
 
-    /**
-     * Formats a double value as currency (Rupees) with localization.
+    /** 
+     * Standard currency formatter prepending the Rupee symbol.
      */
-    fun formatCurrency(amount: Double): String {
-        return "₹${formatAmount(amount)}"
+    fun formatCurrency(/** Paise value */ amountPaise: Long): String {
+        return "₹" + formatAmount(amountPaise)
     }
 
-    /**
-     * Returns a localized description for a transaction type.
+    /** 
+     * Overload for double values.
      */
-    fun getLocalizedTransactionType(type: String, isHindi: Boolean): String {
+    fun formatCurrency(/** raw double */ amount: Double): String {
+        return "₹" + String.format(Locale.US, "%.2f", amount)
+    }
+
+    /** 
+     * Resolves transaction type labels based on current locale.
+     */
+    fun getLocalizedTransactionType(/** tag */ type: String, /** state */ isHindi: Boolean): String {
         return when (type) {
             "medicine" -> if (isHindi) "दवाई दी" else "Medicine Given"
             "payment" -> if (isHindi) "जमा किया" else "Payment Received"
             "adjustment" -> if (isHindi) "समायोजन" else "Balance Adjustment"
+            "payer_record" -> if (isHindi) "दूसरे के लिए भुगतान" else "Paid for Family Member"
             else -> type
         }
     }
 
-    /**
-     * Formats a date and time into a human-readable string.
+    /** 
+     * Formats a Date object for display.
      */
-    fun formatDateTime(date: java.util.Date): String {
+    fun formatDateTime(/** timestamp */ date: java.util.Date): String {
         return java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(date)
+    }
+
+    /**
+     * Basic transliteration from English to Hindi (Rule-based).
+     */
+    fun transliterate(text: String): String {
+        if (text.isBlank()) return ""
+        
+        // Simple mapping for demonstration. Real-world would use a library or API.
+        var result = text.lowercase(Locale.US)
+        val mapping = mapOf(
+            "a" to "ा", "b" to "ब", "c" to "च", "d" to "द", "e" to "े",
+            "f" to "फ", "g" to "ग", "h" to "ह", "i" to "ि", "j" to "ज",
+            "k" to "क", "l" to "ल", "m" to "म", "n" to "न", "o" to "ो",
+            "p" to "प", "q" to "क", "r" to "र", "s" to "स", "t" to "त",
+            "u" to "ु", "v" to "व", "w" to "व", "x" to "क्स", "y" to "य", "z" to "ज़",
+            "kh" to "ख", "gh" to "घ", "ch" to "छ", "jh" to "झ", "th" to "थ",
+            "dh" to "ध", "ph" to "फ", "bh" to "भ", "sh" to "श"
+        )
+        
+        // Replace multi-char first
+        listOf("kh", "gh", "ch", "jh", "th", "dh", "ph", "bh", "sh").forEach {
+            result = result.replace(it, mapping[it]!!)
+        }
+        
+        // Replace single char
+        mapping.forEach { (eng, hindi) ->
+            if (eng.length == 1) {
+                result = result.replace(eng, hindi)
+            }
+        }
+        
+        return result
     }
 }

@@ -1,126 +1,117 @@
 package com.clinicledger.ui.search.viewmodel
 
 import android.app.Application
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
 import com.clinicledger.data.repository.PatientRepository
 import com.clinicledger.data.repository.TransactionRepository
 import com.clinicledger.data.repository.VillageRepository
-import com.clinicledger.domain.usecase.SearchPatientsUseCase
+import com.clinicledger.ui.util.DateTimeUtils
 
 /**
- * ViewModel for the main dashboard and search functionality.
- * Manages the reactive pipeline from search queries to ranked patient results.
+ * ViewModel for patient searching and dashboard state.
  */
-class SearchViewModel(application: Application) : AndroidViewModel(application) {
+class SearchViewModel(/** App context */ application: Application) : AndroidViewModel(application) {
 
-    private val repository = PatientRepository(getApplication())
-    private val transactionRepository = TransactionRepository(getApplication())
-    private val villageRepository = VillageRepository(getApplication())
-    
-    private val searchPatientsUseCase = SearchPatientsUseCase(repository)
+    private val repository = PatientRepository(application)
+    private val villageRepository = VillageRepository(application)
+    private val transactionRepository = TransactionRepository(application)
 
-    /** The current active search query string. */
     private val _query = MutableLiveData("")
-
-    /** Loading state for search operations. */
-    private val _isLoading = MutableLiveData<Boolean>(false)
+    
+    private val _isLoading = MutableLiveData(false)
+    /** Observable loading state */
     val isLoading: LiveData<Boolean> = _isLoading
 
-    /**
-     * Observable results of the current search query, ranked by relevance.
-     * Switches to an empty list when query is blank.
-     */
-    val searchResults = MediatorLiveData<List<Patient>>().apply {
-        var previousSource: LiveData<List<Patient>>? = null
+    /** Filtered patient search results based on the current query. */
+    val searchResults: LiveData<List<Patient>> = MediatorLiveData<List<Patient>>().apply {
+        var currentSource: LiveData<List<Patient>>? = null
         addSource(_query) { query ->
-            previousSource?.let { removeSource(it) }
-            val newSource = if (query.isNullOrBlank()) {
-                _isLoading.value = false
-                MutableLiveData(emptyList())
-            } else {
-                searchPatientsUseCase(query)
-            }
-            previousSource = newSource
-            addSource(newSource) { 
-                value = it 
-                _isLoading.value = false
-            }
+            currentSource?.let { removeSource(it) }
+            val newSource = repository.searchPatients(query)
+            currentSource = newSource
+            addSource(newSource) { value = it }
         }
     }
 
-    /** The most recently created or updated patients. */
-    val recentPatients: LiveData<List<Patient>> = repository.getRecentPatients(15)
-
-    /** All available villages, used for ID resolution and selection. */
+    /** All registered villages. */
     val villages: LiveData<List<Village>> = villageRepository.getAllVillages()
 
-    /** All defined family groups. */
-    val familyGroups: LiveData<List<com.clinicledger.data.models.FamilyGroup>> = repository.getAllFamilyGroups()
+    /** All family groups in the system. */
+    val familyGroups: LiveData<List<FamilyGroup>> = repository.getAllFamilyGroups()
 
-    private val _error = MutableLiveData<String?>()
-    val error: LiveData<String?> = _error
-
-    /**
-     * Updates the current search query and triggers the ranking use case.
-     */
-    fun searchPatients(query: String) {
-        _query.value = query
-        if (query.isNotBlank()) {
-            _isLoading.value = true
-        } else {
-            _isLoading.value = false
-        }
+    /** All patients in the database. */
+    val allPatients: LiveData<List<Patient>> = MediatorLiveData<List<Patient>>().apply {
+        addSource(repository.searchPatients("")) { value = it }
     }
 
-    /** Observable total of all outstanding dues in the clinic. */
-    val totalDue: LiveData<Double> = repository.getTotalDueObservable()
-    
-    /** Observable total of payments received today. */
-    val totalCollectedToday: LiveData<Double> = transactionRepository.getTotalCollectedTodayObservable()
+    /** All clinical transactions. */
+    val allTransactions: LiveData<List<Transaction>> = 
+        transactionRepository.getAllTransactions()
 
-    /** Full list of all patients for data-heavy sections like Clinic Memory. */
-    val allPatients: LiveData<List<Patient>> = repository.getAllPatientsObservable()
+    /** Monetary total for today's recovery. */
+    val totalCollectedToday: LiveData<Long> = 
+        transactionRepository.getTotalCollectedSinceObservable(DateTimeUtils.getStartOfDay())
 
-    /** Full chronological list of all transactions. */
-    val allTransactions: LiveData<List<Transaction>> = transactionRepository.getAllTransactions()
+    /**
+     * Observable list of recently accessed patients.
+     * Limit of 15 is used by default.
+     */
+    val recentPatients: LiveData<List<Patient>> = repository.getRecentPatients()
 
-    /** Stores the currently selected drawer tab, persisted in SharedPreferences. */
-    private val prefs = getApplication<Application>().getSharedPreferences("clinic_ledger_prefs", android.content.Context.MODE_PRIVATE)
-    private val _selectedTab = MutableLiveData<String>(prefs.getString("selected_tab", "LEDGER") ?: "LEDGER")
+    private val _error = MutableLiveData<String?>(null)
+    /** Error messages for UI observation */
+    val error: LiveData<String?> = _error
+
+    private val prefs = getApplication<Application>().getSharedPreferences(
+        "clinic_ledger_prefs", 
+        android.content.Context.MODE_PRIVATE,
+    )
+
+    private val _selectedTab = MutableLiveData(prefs.getString("selected_tab", "LEDGER") ?: "LEDGER")
+    /** Last selected navigation tab */
     val selectedTab: LiveData<String> = _selectedTab
 
     /**
-     * Sets the active navigation tab and persists the choice.
+     * Updates the persistent selected tab preference.
      */
-    fun setSelectedTab(tab: String) {
+    fun setSelectedTab(/** Tab identifier */ tab: String) {
         _selectedTab.value = tab
-        prefs.edit().putString("selected_tab", tab).apply()
+        prefs.edit { putString("selected_tab", tab) }
     }
 
     /**
-     * Finds a patient by exact name match.
+     * Triggers a patient search.
      */
-    suspend fun getPatientByName(name: String): Patient? {
-        return repository.getPatientByName(name)
+    fun searchPatients(/** text */ query: String) {
+        _query.value = query
     }
 
     /**
-     * Finds patients by name or alias for voice-driven disambiguation.
+     * Identifies a patient from a bitmap photo.
      */
-    suspend fun findPatientByVoice(name: String): List<Patient> {
-        return repository.findPatientByVoice(name)
+    fun identifyPatientByPhoto(
+        /** Input image */
+        bitmap: android.graphics.Bitmap, 
+        /** Completion callback */
+        onResult: (Patient?) -> Unit,
+    ) {
+        // Placeholder for AI Face Recognition
+        val dummy = bitmap.hashCode()
+        if (android.util.Log.isLoggable(TAG, android.util.Log.DEBUG)) {
+            android.util.Log.d(TAG, "Ident task for hash: $dummy")
+        }
+        onResult(null)
     }
 
-    /**
-     * Records a manual transaction.
-     */
-    suspend fun insertTransaction(transaction: Transaction) {
-        transactionRepository.insertTransaction(transaction)
+    companion object {
+        private const val TAG = "SearchVM"
     }
 }

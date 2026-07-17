@@ -38,7 +38,7 @@ private val DarkColorScheme = darkColorScheme(
     error = DarkError,
     onError = DarkOnError,
     errorContainer = DarkErrorContainer,
-    onErrorContainer = DarkOnErrorContainer
+    onErrorContainer = DarkOnErrorContainer,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -64,18 +64,23 @@ private val LightColorScheme = lightColorScheme(
     error = LightError,
     onError = LightOnError,
     errorContainer = LightErrorContainer,
-    onErrorContainer = LightOnErrorContainer
+    onErrorContainer = LightOnErrorContainer,
 )
 
+/**
+ * Custom theme for the Clinic Ledger application.
+ */
 @Composable
 fun ClinicLedgerTheme(
+    /** dark mode flag */
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    /** android 12+ flag */
     dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
+    /** content block */
+    content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        dynamicColor && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -86,7 +91,9 @@ fun ClinicLedgerTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
             window.statusBarColor = colorScheme.background.toArgb()
+            @Suppress("DEPRECATION")
             window.navigationBarColor = colorScheme.background.toArgb()
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
             windowInsetsController.isAppearanceLightStatusBars = !darkTheme
@@ -97,6 +104,6 @@ fun ClinicLedgerTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

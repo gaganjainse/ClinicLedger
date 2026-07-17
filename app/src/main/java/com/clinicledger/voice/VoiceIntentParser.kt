@@ -1,466 +1,354 @@
 package com.clinicledger.voice
 
-import java.util.Locale
+import com.clinicledger.data.models.Village
 
 /**
  * Result of the voice parsing logic.
  */
 data class ParsedVoiceIntent(
+    /** Detected user intent type */
     val intent: IntentType,
+    /** Extracted patient name if any */
     val patientName: String? = null,
+    /** Extracted village name if any */
     val villageName: String? = null,
-    val medicineAmount: Double? = null,
-    val paymentAmount: Double? = null,
+    /** Extracted medicine amount if any (in Paise) */
+    val medicineAmount: Long? = null,
+    /** Extracted payment amount if any (in Paise) */
+    val paymentAmount: Long? = null,
+    /** Confidence score of the match */
     val confidence: Float = 0f,
 )
 
 /**
- * Supported actions that can be detected from a voice transcript.
+ * Categorization of user voice commands.
  */
 enum class IntentType {
+    /** Check patient's outstanding dues */
     SEARCH_BALANCE,
+    /** Record a new medicine debt */
     MEDICINE,
+    /** Record a payment received */
     PAYMENT,
+    /** Combined record of debt and payment */
     MEDICINE_AND_PAYMENT,
+    /** Register a new patient */
     NEW_PATIENT,
+    /** Correct a previous mistake */
     CORRECTION,
+    /** Positive confirmation */
     CONFIRM_YES,
+    /** Negative confirmation */
     CONFIRM_NO,
+    /** Ask for a briefing */
     SUMMARY,
+    /** Open analytics graphs */
     SHOW_GRAPH,
+    /** View patient history */
     VIEW_HISTORY,
+    /** Start a clinical routine */
     ROUTINE,
+    /** Ask general medical question */
+    ASK_AI,
+    /** Fallback state */
     UNKNOWN
 }
 
 /**
- * Heuristic-based natural language parser for Hindi and English medical ledger commands.
- * Identifies patient names, amounts, and intent types from speech transcripts.
+ * Advanced NLP parser for bilingual (Hindi/English) clinical commands.
  */
+@Suppress("HardcodedStringLiteral")
 object VoiceIntentParser {
 
     /**
-     * Main entry point for parsing a raw transcript.
+     * Parses the raw [text] into a structured [ParsedVoiceIntent].
      */
-    fun parse(text: String, villages: List<com.clinicledger.data.models.Village>? = null): ParsedVoiceIntent {
-        val clean = text.lowercase(Locale.getDefault()).trim()
-            .replace("[.,!?]+".toRegex(), " ")
-            .replace("\\s+".toRegex(), " ").trim()
-
-        val intent = detectIntent(clean)
-        val patientName = extractPatientName(clean, villages)
-        val villageName = extractVillageName(clean, villages)
+    fun parse(
+        /** Raw speech-to-text input */
+        text: String, 
+        /** Optional village list for entity resolution */
+        villages: List<Village>? = null,
+    ): ParsedVoiceIntent {
+        val cleanText = text.lowercase()
+            .replace("[?.!]".toRegex(), "")
+            .replace("\\s+".toRegex(), " ")
+            .trim()
         
-        val wordsList = clean.split("\\s+".toRegex())
-        val groups = findNumberGroups(clean)
-        val (medicineAmount, paymentAmount) = classifyGroups(groups, wordsList, intent)
+        if (cleanText.isEmpty()) return ParsedVoiceIntent(IntentType.UNKNOWN)
+
+        val intent = detectIntent(cleanText)
+        val words = cleanText.split(" ")
+
+        // 1. Resolve Amounts (Standardize to Paise)
+        val numbers = findNumberGroups(cleanText)
+        val (medValue, payValue) = classifyGroups(numbers, words, intent)
+        
+        // classifyGroups returns values in Rupees. Convert to Paise.
+        val medicineAmount = medValue?.let { (it * 100).toLong() }
+        val paymentAmount = payValue?.let { (it * 100).toLong() }
+
+        // 2. Resolve Village
+        val detectedVillage = villages?.find { v ->
+            containsWordOrPhrase(cleanText, v.name.lowercase()) || 
+                containsWordOrPhrase(cleanText, v.nameHindi)
+        }
+
+        // 3. Resolve Patient Name
+        val patientName = extractPatientName(cleanText, intent, villages)
 
         return ParsedVoiceIntent(
             intent = intent,
             patientName = patientName,
-            villageName = villageName,
+            villageName = detectedVillage?.name,
             medicineAmount = medicineAmount,
             paymentAmount = paymentAmount,
-            confidence = if (intent != IntentType.UNKNOWN) 0.9f else 0.2f,
+            confidence = 0.8f,
         )
     }
 
-    /**
-     * Keyword-based intent detection.
-     */
-    fun detectIntent(text: String): IntentType {
-        if (isRoutine(text)) return IntentType.ROUTINE
-        if (isSummary(text)) return IntentType.SUMMARY
-        if (isGraph(text)) return IntentType.SHOW_GRAPH
-        if (isHistory(text)) return IntentType.VIEW_HISTORY
-        if (isCorrection(text)) return IntentType.CORRECTION
-        if (isConfirmNo(text)) return IntentType.CONFIRM_NO
-        if (isConfirmYes(text)) return IntentType.CONFIRM_YES
-        if (isNewPatient(text)) return IntentType.NEW_PATIENT
-        if (isMedicine(text) && isPayment(text)) return IntentType.MEDICINE_AND_PAYMENT
-        if (isPayment(text)) return IntentType.PAYMENT
-        if (isMedicine(text)) return IntentType.MEDICINE
-        if (isSearchBalance(text)) return IntentType.SEARCH_BALANCE
-        return IntentType.UNKNOWN
+    private fun detectIntent(text: String): IntentType {
+        return when {
+            isCorrection(text) -> IntentType.CORRECTION
+            isConfirmYes(text) -> IntentType.CONFIRM_YES
+            isConfirmNo(text) -> IntentType.CONFIRM_NO
+            isNewPatient(text) -> IntentType.NEW_PATIENT
+            isSummary(text) -> IntentType.SUMMARY
+            isGraph(text) -> IntentType.SHOW_GRAPH
+            isHistory(text) -> IntentType.VIEW_HISTORY
+            isRoutine(text) -> IntentType.ROUTINE
+            isAskAi(text) -> IntentType.ASK_AI
+            isMedicineAndPayment(text) -> IntentType.MEDICINE_AND_PAYMENT
+            isMedicine(text) -> IntentType.MEDICINE
+            isPayment(text) -> IntentType.PAYMENT
+            isSearchBalance(text) -> IntentType.SEARCH_BALANCE
+            else -> IntentType.UNKNOWN
+        }
     }
 
-    private val searchKeywords = setOf(
-        "kitna", "baki", "baki hai", "hisaab", "kita", "dikhao", "khata", "balance",
-        "due", "how much", "का", "बकाया", "कितना", "हिसाब", "दिखाओ", "खाता",
-    )
+    private fun isSearchBalance(text: String): Boolean {
+        val keywords = listOf(
+            "kitna", "baki", "baki hai", "hisaab", "kita", "dikhao", "khata", "balance",
+            "due", "how much", "का", "बकाया", "कितना", "हिसाब", "दिखाओ", "खाता",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val medicineKeywords = setOf(
-        "dawa", "dawai", "dava", "davai", "tablet", "syrup", "injection", "medicine",
-        "di", "दवा", "दवाई", "दी",
-    )
+    private fun isMedicine(text: String): Boolean {
+        val keywords = listOf(
+            "dawa", "dawai", "dava", "davai", "tablet", "syrup", "injection", "medicine",
+            "di", "दवा", "दवाई", "दी", "ki",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val paymentKeywords = setOf(
-        "diye", "diya", "jama", "de gaya", "de diye", "paid", "payment",
-        "paisa diya", "paisa diye", "दिये", "दिए", "जमा", "दे गए", "पैसा दिया",
-        "jama kar diye",
-    )
+    private fun isPayment(text: String): Boolean {
+        val keywords = listOf(
+            "diye", "diya", "jama", "de gaya", "de diye", "paid", "payment",
+            "paisa diya", "paisa diye", "दिये", "दिए", "जमा", "दे गए", "पैसा दिया",
+            "jama kar diye", "rupees", "rupay", "rupaya",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val newPatientKeywords = setOf(
-        "naya", "nayi", "naya patient", "nayi patient", "naya bimaar",
-        "pehli baar", "new patient", "नया", "नयी", "नया रोगी", "पहली बार",
-    )
+    private fun isMedicineAndPayment(text: String): Boolean {
+        return isMedicine(text) && isPayment(text)
+    }
 
-    private val correctionKeywords = setOf(
-        "galat", "galat ho gaya", "hata do", "hatao", "kat do", "kato",
-        "sudhar", "wrong", "cancel", "undo", "hata den", "delete karo",
-        "saaf karo", "saaf",
-        "गलत", "हटा दो", "हटाओ", "काट दो", "सुधार", "साफ"
-    )
+    private fun isNewPatient(text: String): Boolean {
+        val keywords = listOf(
+            "naya", "nayi", "naya patient", "nayi patient", "naya bimaar",
+            "pehli baar", "new patient", "नया", "नयी", "नया रोगी", "पहली बार",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val yesKeywords = setOf(
-        "haan", "ha", "hmm", "sahi", "sahi hai", "theek", "theek hai",
-        "ok", "yes", "correct", "ठीक", "सही है", "हाँ", "हां"
-    )
+    private fun isCorrection(text: String): Boolean {
+        val keywords = listOf(
+            "hata do", "hatao", "kat do", "kato",
+            "wrong", "cancel", "undo", "hata den", "delete karo",
+            "saaf karo", "saaf",
+            "हटा दो", "हटाओ", "काट दो", "सुधार", "साफ",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val noKeywords = setOf(
-        "nahi", "nhi", "galat", "galat hai", "badlo", "badal do",
-        "no", "wrong", "dobara", "phir se", "नहीं", "नही", "बदलो", "फिर से"
-    )
+    private fun isConfirmYes(text: String): Boolean {
+        val keywords = listOf(
+            "haan", "ha", "hmm", "sahi", "sahi hai", "theek", "theek hai",
+            "ok", "yes", "correct", "ठीक", "सही है", "हाँ", "हां",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val summaryKeywords = setOf(
-        "aaj ka", "summary", "report", "brief", "today", "today's",
-        "आज का", "हिसाब बताओ", "कुल", "सारांश"
-    )
+    private fun isConfirmNo(text: String): Boolean {
+        val keywords = listOf(
+            "nahi", "nhi", "galat", "galat hai", "badlo", "badal do",
+            "no", "नहीं", "नही", "बदलो", "फिर से",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val graphKeywords = setOf(
-        "graph", "chart", "analytics", "analysis", "progress",
-        "ग्राफ", "चार्ट", "नक्शा", "कैसा चल रहा है"
-    )
+    private fun isSummary(text: String): Boolean {
+        val keywords = listOf(
+            "aaj ka", "summary", "report", "brief", "today", "today's",
+            "आज का", "हिसाब बताओ", "कुल", "सारांश",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val historyKeywords = setOf(
-        "purana", "history", "record", "records", "pichla",
-        "पुराना", "रिकॉर्ड", "पहले का"
-    )
+    private fun isGraph(text: String): Boolean {
+        val keywords = listOf(
+            "graph", "chart", "analytics", "analysis", "progress",
+            "ग्राफ", "चार्ट", "नक्शा", "कैसा चल रहा है",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val routineKeywords = setOf(
-        "routine", "shuruat", "start", "protocol",
-        "रूटीन", "शुरुआत", "शुरू करें", "काम शुरू करें"
-    )
+    private fun isHistory(text: String): Boolean {
+        val keywords = listOf(
+            "purana", "history", "record", "records", "pichla",
+            "पुराना", "रिकॉर्ड", "पहले का",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val medicineKeywordsNear = setOf(
-        "dawa", "dawai", "dava", "davai", "tablet", "syrup", "injection", "medicine", "udhaar", "udhar",
-        "दवा", "दवाई", "उधार"
-    )
+    private fun isRoutine(text: String): Boolean {
+        val keywords = listOf(
+            "routine", "shuruat", "start", "protocol",
+            "रूटीन", "शुरुआत", "शुरू करें", "काम शुरू करें",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
-    private val paymentKeywordsNear = setOf(
-        "jama", "paid", "payment", "paisa", "paise", "rupee", "rupees", "rupaye", "rupay", "de", "diye", "diya",
-        "जमा", "पैसा", "पैसे", "रुपए", "रुपये", "दिए", "दिये"
-    )
+    private fun isAskAi(text: String): Boolean {
+        val keywords = listOf(
+            "who", "what", "where", "when", "why", "how", "list", "show me", "tell me",
+            "kaun", "kya", "kaha", "kab", "kyu", "kaise", "dikhao", "batao",
+            "कौन", "क्या", "कहाँ", "कब", "क्यों", "कैसे", "दिखाओ", "बताओ", "सूची",
+        )
+        return keywords.any { containsWordOrPhrase(text, it) }
+    }
 
     private fun containsWordOrPhrase(text: String, keyword: String): Boolean {
         val pattern = "(?:^|\\s)${Regex.escape(keyword)}(?:$|\\s)".toRegex()
         return pattern.containsMatchIn(text)
     }
 
-    private fun isSearchBalance(text: String): Boolean =
-        searchKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isMedicine(text: String): Boolean =
-        medicineKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isPayment(text: String): Boolean =
-        paymentKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isNewPatient(text: String): Boolean =
-        newPatientKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isCorrection(text: String): Boolean =
-        correctionKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isConfirmYes(text: String): Boolean =
-        yesKeywords.any { keyword ->
-            val pattern = "\\b${Regex.escape(keyword)}\\b".toRegex()
-            pattern.containsMatchIn(text)
-        }
-
-    private fun isConfirmNo(text: String): Boolean =
-        noKeywords.any { keyword ->
-            val pattern = "\\b${Regex.escape(keyword)}\\b".toRegex()
-            pattern.containsMatchIn(text)
-        }
-
-    private fun isSummary(text: String): Boolean =
-        summaryKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isGraph(text: String): Boolean =
-        graphKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isHistory(text: String): Boolean =
-        historyKeywords.any { containsWordOrPhrase(text, it) }
-
-    private fun isRoutine(text: String): Boolean =
-        routineKeywords.any { containsWordOrPhrase(text, it) }
-
-    /**
-     * Extracts potential patient names by looking at tokens before grammatical particles.
-     */
-    fun extractPatientName(text: String, villages: List<com.clinicledger.data.models.Village>? = null): String? {
-        val clean = text.lowercase(Locale.getDefault()).trim()
+    internal fun extractPatientName(
+        text: String, 
+        intent: IntentType = IntentType.UNKNOWN, 
+        villages: List<Village>? = null,
+    ): String? {
+        var cleanedText = text
         
-        // Let's identify the name using trigger particles and common delimiters
-        val delimiters = listOf(
-            " ko ", " ne ", " ka ", " se ", " ki ", " ke ", 
-            " kitna ", " baki ", " hisaab ", " khata ", " balance ", " due ", 
+        // Remove village names
+        villages?.forEach { v ->
+            cleanedText = cleanedText.replace(v.name.lowercase(), " ")
+            cleanedText = cleanedText.replace(v.nameHindi, " ")
+        }
+        
+        // Common village names not in list
+        val commonVillages = listOf("jhilai", "siras", "mehtabpura", "bassi", "shyosinghpura")
+        commonVillages.forEach { cleanedText = cleanedText.replace(it, " ") }
+
+        // Remove filler words and markers
+        val fillers = listOf(
+            " ko ", " ne ", " ka ", " se ", " ki ", " ke ",
+            " kitna ", " baki ", " hisaab ", " khata ", " balance ", " due ", " hai",
             " dawa ", " dawai ", " dava ", " tablet ", " medicine ", " jama ", " paid ", " payment ",
-            " को ", " ने ", " का ", " की ", " के ", " से ", " कितना ", " बकाया ", " हिसाब ", " खाता ", " दवा ", " जमा "
+            " को ", " ने ", " का ", " की ", " के ", " से ", " कितना ", " बकाया ", " हिसाब ", " खाता ", " दवा ", " जमा ",
+            " है", " का", " की", " के", " में", " में ", " aur ", " and ", " unhone ", " unhone",
+            " diye ", " diya ", " diye", " diya", " kiye ", " kiye",
         )
+        fillers.forEach { cleanedText = cleanedText.replace(it, " ") }
+
+        // Remove numeric values
+        cleanedText = cleanedText.replace("\\d+".toRegex(), " ")
         
-        var nameCandidate: String? = null
-        for (delim in delimiters) {
-            val idx = clean.indexOf(delim)
-            if (idx > 0) {
-                val prefix = clean.substring(0, idx).trim()
-                // Clean up leading keywords like "naya patient"
-                var cleanedPrefix = prefix
-                val removePrefixes = listOf(
-                    "naya patient ", "nayi patient ", "naya bimaar ", "pehli baar ", "new patient ", "patient ",
-                    "नया रोगी ", "नया ", "नयी ", "पहली बार ", "रोगी "
-                )
-                for (p in removePrefixes) {
-                    if (cleanedPrefix.startsWith(p)) {
-                        cleanedPrefix = cleanedPrefix.substring(p.length).trim()
-                    }
-                }
-                
-                // Split prefix into words and make sure they are not numbers or purely stop words or villages
-                val words = cleanedPrefix.split("\\s+".toRegex()).filter { w ->
-                    val isVil = if (villages != null) {
-                        villages.any { v ->
-                            (v.name.lowercase() == w) || (v.nameHindi.lowercase() == w)
-                        }
-                    } else {
-                        val villageKeys = setOf(
-                            "siras", "mehtabpura", "jhilai", "bassi", "shyosinghpura", "mandaliya", "nala", "piplya"
-                        )
-                        villageKeys.contains(w)
-                    }
-                    ((w.length >= 2) && (!w.all { it.isDigit() }) && (!isHindiNumberWord(w)) && (!isVil) && (!isStopWord(w)))
-                }
-                
-                if (words.isNotEmpty()) {
-                    nameCandidate = words.joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
-                    break
-                }
-            }
-        }
-        
-        // Fallback to original sliding-window token strategy
-        if (nameCandidate == null) {
-            val words = text.split("\\s+".toRegex())
-            val nameWords = mutableListOf<String>()
-            var foundStart = false
-
-            for (word in words) {
-                val cleanWord = word.lowercase(Locale.getDefault())
-
-                // Check if word is a village
-                val isVillage = if (villages != null) {
-                    villages.any { v ->
-                        val engKey = v.name.lowercase()
-                        val hindiKey = v.nameHindi.lowercase()
-                        ((cleanWord == engKey) || (cleanWord == hindiKey))
-                    }
-                } else {
-                    val villageKeys = setOf(
-                        "siras", "mehtabpura", "jhilai", "bassi", "shyosinghpura", "mandaliya", "nala", "piplya"
-                    )
-                    villageKeys.contains(cleanWord)
-                }
-
-                val isValidNameWord = ((word.length >= 2) &&
-                        (!word.all { it.isDigit() }) &&
-                        (!isStopWord(cleanWord)) &&
-                        (!isVillage) &&
-                        (!isHindiNumberWord(cleanWord)))
-
-                if (isValidNameWord) {
-                    foundStart = true
-                    nameWords.add(word.replaceFirstChar { it.uppercase() })
-                } else {
-                    if (foundStart) {
-                        break
-                    }
-                }
-            }
-            if (nameWords.isNotEmpty()) {
-                nameCandidate = nameWords.joinToString(" ")
-            }
-        }
-        
-        return nameCandidate
-    }
-
-    private fun isHindiNumberWord(word: String): Boolean {
-        val hindiNumWords = setOf(
+        // Remove Hindi number words
+        val hindiNums = listOf(
             "ek", "do", "teen", "char", "paanch", "panch", "chheh", "saat", "aath", "nau", "das",
-            "bees", "tees", "chalis", "pachas", "saath", "sattar", "assi", "nabbe",
-            "dedh", "dhai", "adhai", "sava", "sade", "paun", "paune", "sau", "hazaar", "hazar",
-            "एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस", "बीस", "तीस", "चालीस", "पचास", "साठ", "सत्तर", "अस्सी", "नब्बे",
-            "डेढ़", "ढाई", "सौ", "हजार", "साढ़े", "पौने"
+            "sau", "hazaar", "hazar", "dedh", "dhai", "sade", "paune",
+            "एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस", "सौ", "हजार",
         )
-        return hindiNumWords.contains(word)
+        hindiNums.forEach { cleanedText = cleanedText.replace(it, " ") }
+
+        // Remove intent indicators
+        val prefixes = listOf(
+            "naya patient ", "nayi patient ", "naya bimaar ", "pehli baar ", "new patient ", "patient ",
+            "नया रोगी ", "नया ", "नयी ", "पहली बार ", "रोगी ",
+        )
+        prefixes.forEach { cleanedText = cleanedText.replace(it, " ") }
+
+        val words = cleanedText.split(" ").filter { it.length > 2 && it.isNotBlank() }
+        if (words.isEmpty()) return null
+        
+        return words.take(2).joinToString(" ") { 
+            it.replaceFirstChar { char -> char.uppercase() } 
+        }
+    }
+
+    internal fun extractVillageName(text: String, villages: List<Village>): String? {
+        val cleanText = text.lowercase()
+        return villages.find { v ->
+            containsWordOrPhrase(cleanText, v.name.lowercase()) || 
+                containsWordOrPhrase(cleanText, v.nameHindi)
+        }?.name
     }
 
     /**
-     * Extracts village names by matching against the known village list.
+     * Found number group in text.
      */
-    fun extractVillageName(text: String, villages: List<com.clinicledger.data.models.Village>? = null): String? {
-        val words = text.split("\\s+".toRegex())
-        if (villages != null) {
-            for (word in words) {
-                val cleanWord = word.lowercase(Locale.getDefault())
-                for (v in villages) {
-                    val engKey = v.name.lowercase()
-                    val hindiKey = v.nameHindi.lowercase()
-                    if (cleanWord.contains(engKey) || (hindiKey.isNotEmpty() && cleanWord.contains(hindiKey))) {
-                        return v.name
-                    }
+    data class NumberGroup(
+        /** Numeric value */
+        val value: Double, 
+        /** Start index in text */
+        val startIndex: Int, 
+        /** End index in text */
+        val endIndex: Int,
+    )
+
+    internal fun findNumberGroups(cleanText: String): List<NumberGroup> {
+        val result = mutableListOf<NumberGroup>()
+        
+        // 1. Literal numbers
+        val numberRegex = "\\d+".toRegex()
+        val matches = numberRegex.findAll(cleanText)
+        for (m in matches) {
+            result.add(NumberGroup(m.value.toDouble(), m.range.first, m.range.last))
+        }
+
+        // 2. Hindi number parser
+        // We only add if it's not already picked up by literal numbers or if it's a word-based number
+        val convertedValue = HindiNumberConverter.parseHindiNumbers(cleanText)
+        if (convertedValue > 0) {
+            // HindiNumberConverter returns standard numeric value (e.g. 300 for "teen sau")
+            if (result.none { it.value == convertedValue }) {
+                result.add(NumberGroup(convertedValue, 0, cleanText.length))
+            }
+        }
+
+        return result
+    }
+
+    private fun classifyGroups(
+        groups: List<NumberGroup>, 
+        words: List<String>, 
+        intent: IntentType,
+    ): Pair<Double?, Double?> {
+        if (groups.isEmpty()) return null to null
+        
+        return when (intent) {
+            IntentType.MEDICINE -> groups.first().value to null
+            IntentType.PAYMENT -> null to groups.first().value
+            IntentType.MEDICINE_AND_PAYMENT -> {
+                if (groups.size >= 2) {
+                    groups[0].value to groups[1].value
+                } else {
+                    groups.first().value to null
                 }
             }
+            else -> null to null
         }
-        val villageMap = mapOf(
-            "siras" to "Siras", "mehtabpura" to "Mehtabpura", "jhilai" to "Jhilai",
-            "bassi" to "Bassi", "shyosinghpura" to "Shyosinghpura",
-            "mandaliya" to "Mandaliya", "nala" to "Nala", "piplya" to "Piplya"
-        )
-        return words.firstOrNull { word ->
-            val cleanWord = word.lowercase(Locale.getDefault())
-            villageMap.any { (key, _) -> cleanWord.contains(key) }
-        }?.let { word ->
-            val cleanWord = word.lowercase(Locale.getDefault())
-            villageMap.entries.firstOrNull { (key, _) -> cleanWord.contains(key) }?.value
-        }
-    }
-
-    data class NumberGroup(val value: Double, val startIndex: Int, val endIndex: Int)
-
-    /**
-     * Groups consecutive number-like words (digits or Hindi words like "teen sau").
-     */
-    fun findNumberGroups(cleanText: String): List<NumberGroup> {
-        val words = cleanText.split("\\s+".toRegex())
-        val groups = mutableListOf<NumberGroup>()
-        val currentGroupWords = mutableListOf<String>()
-        var startIdx = -1
-
-        for (i in words.indices) {
-            val word = words[i]
-            val isNum = word.all { it.isDigit() } || isHindiNumberWord(word)
-            if (isNum) {
-                if (currentGroupWords.isEmpty()) {
-                    startIdx = i
-                }
-                currentGroupWords.add(word)
-            } else {
-                if (currentGroupWords.isNotEmpty()) {
-                    val groupStr = currentGroupWords.joinToString(" ")
-                    parseGroupString(groupStr)?.let {
-                        groups.add(NumberGroup(it, startIdx, i - 1))
-                    }
-                    currentGroupWords.clear()
-                }
-            }
-        }
-        if (currentGroupWords.isNotEmpty()) {
-            val groupStr = currentGroupWords.joinToString(" ")
-            parseGroupString(groupStr)?.let {
-                groups.add(NumberGroup(it, startIdx, words.size - 1))
-            }
-        }
-        return groups
-    }
-
-    private fun parseGroupString(str: String): Double? {
-        if (str.all { it.isDigit() }) {
-            return str.toDoubleOrNull()
-        }
-        return HindiNumberConverter.parseHindiNumber(str)
-    }
-
-    /**
-     * Assigns detected number groups to either Medicine or Payment based on surrounding keywords.
-     */
-    fun classifyGroups(groups: List<NumberGroup>, words: List<String>, intent: IntentType): Pair<Double?, Double?> {
-        if (groups.isEmpty()) return Pair(null, null)
-
-        if (groups.size == 1) {
-            val val0 = groups[0].value
-            return if (intent == IntentType.PAYMENT) {
-                Pair(null, val0)
-            } else {
-                Pair(val0, null)
-            }
-        }
-
-        var medicineAmount: Double? = null
-        var paymentAmount: Double? = null
-
-        val scoredGroups = groups.map { group ->
-            var medScore = 0
-            var payScore = 0
-
-            val startLook = maxOf(0, group.startIndex - 4)
-            val endLook = minOf(words.size - 1, group.endIndex + 4)
-
-            for (i in startLook..endLook) {
-                if (i in (group.startIndex..group.endIndex)) continue
-                val w = words[i].lowercase(Locale.getDefault())
-                if (medicineKeywordsNear.contains(w)) medScore += 2
-                if (paymentKeywordsNear.contains(w)) payScore += 2
-            }
-
-            if (group.startIndex < words.size / 2) {
-                medScore += 1
-            } else {
-                payScore += 1
-            }
-
-            group to (medScore to payScore)
-        }
-
-        val sortedByMed = scoredGroups.sortedByDescending { it.second.first }
-        if (sortedByMed.isNotEmpty()) {
-            medicineAmount = sortedByMed[0].first.value
-        }
-
-        val sortedByPay = scoredGroups.sortedByDescending { it.second.second }
-        if (sortedByPay.isNotEmpty()) {
-            val bestPayGroup = sortedByPay.firstOrNull { it.first != sortedByMed.firstOrNull()?.first }
-            if (bestPayGroup != null) {
-                paymentAmount = bestPayGroup.first.value
-            } else if (groups.size >= 2) {
-                paymentAmount = groups.firstOrNull { it != sortedByMed[0].first }?.value
-            }
-        }
-
-        return Pair(medicineAmount, paymentAmount)
-    }
-
-    private fun isStopWord(word: String): Boolean {
-        val stopWords = setOf(
-            "kitna", "baki", "hai", "ko", "ne", "ka", "ki", "ke",
-            "se", "mein", "me", "par", "aur", "the", "a", "an",
-            "to", "for", "in", "on", "at", "by", "is", "are",
-            "dawa", "dawai", "di", "diya", "diye", "rupaye", "rupay",
-            "paise", "sau", "hazaar", "lakh", "naya", "nayi",
-            "galat", "hata", "nahi", "haan", "sahi", "jama", "kar",
-            "dava", "davai", "tablet", "syrup", "injection", "medicine",
-            "payment", "paisa", "paise", "rupee", "rupees", "baki", "hisaab",
-            "khata", "balance", "due", "how", "much", "hatao", "hataen",
-            "hataon", "karne", "karo", "do", "diya", "diye", "di",
-            "batao", "bataao", "dikhao", "dikhaao", "se",
-            "patient", "patients", "bimaar", "marij", "marija", "meeriz", "sick",
-            "दवा", "दवाई", "दिया", "दी", "दिये", "रुपए", "रुपये", "पैसे",
-            "सौ", "हज़ार", "लाख", "नया", "नयी", "गलत", "हटा", "नहीं",
-            "हाँ", "हां", "जमा", "कर", "कितना", "बकाया", "हिसाब", "खाता",
-            "बैलेंस", "को", "ने", "का", "की", "के", "से", "में", "और", "पर",
-            "हटाओ", "हटाएं", "करो", "दो", "बताओ", "दिखाओ", "मरीज", "मरीज़", "रोगी", "रोगीजी"
-        )
-        return word.length < 2 || word.all { it.isDigit() } || stopWords.contains(word)
     }
 }

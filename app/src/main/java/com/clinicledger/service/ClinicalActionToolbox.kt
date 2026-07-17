@@ -2,79 +2,102 @@ package com.clinicledger.service
 
 import android.content.Context
 import androidx.navigation.NavController
-import com.clinicledger.data.models.Transaction
+import com.clinicledger.data.models.Patient
 import com.clinicledger.data.repository.PatientRepository
 import com.clinicledger.data.repository.TransactionRepository
+import com.clinicledger.domain.usecase.AddTransactionUseCase
 import com.clinicledger.ui.Screen
-import java.util.*
+import java.util.Date
 
 /**
- * The "App API" that defines all actionable tasks the Assistant can perform.
- * Renamed to ClinicalActionToolbox for better clarity in the service layer.
+ * Hub for clinical operational tasks triggered by the assistant or routines.
  */
+@Suppress("HardcodedStringLiteral")
 class ClinicalActionToolbox(
-    context: Context,
-    private val patientRepository: PatientRepository,
-    private val transactionRepository: TransactionRepository,
+    /** App context */ val context: Context,
+    /** patient data */ private val patientRepository: PatientRepository,
+    /** storage */ private val transactionRepository: TransactionRepository,
 ) {
-    private val briefingService = BriefingService(context)
-    private val routineTool = RoutineTool(this)
-    private val llamaService = LlamaInferenceService(context)
+    private val addTransactionUseCase = AddTransactionUseCase(
+        transactionRepository, 
+        patientRepository,
+    )
 
     /**
-     * Executes a complex reasoning task via local LLM.
+     * Executes an inference prompt for deeper system reasoning.
      */
-    suspend fun getDeepReasoning(prompt: String): String {
-        return llamaService.infer(prompt)
+    suspend fun getDeepReasoning(/** text */ prompt: String): String {
+        return LlamaInferenceService(context).infer(prompt)
     }
 
     /**
-     * Executes a pre-defined clinical routine.
+     * Executes a predefined clinical workflow protocol.
      */
-    suspend fun runRoutine(protocolId: String, navController: NavController, isHindi: Boolean): String {
-        return routineTool.runProtocol(protocolId, navController, isHindi)
+    fun runRoutine(
+        /** protocol key */ protocolId: String, 
+        /** UI state */ navController: NavController,
+    ): String {
+        return RoutineTool(this).runProtocol(protocolId, navController)
     }
 
     /**
-     * Generates a spoken summary of today's work.
+     * Records a clinical transaction entry.
      */
-    suspend fun getSummary(isHindi: Boolean): String {
-        return briefingService.getDailySummary(isHindi)
-    }
-    /**
-     * Records a new transaction for a specific patient.
-     */
-    suspend fun recordTransaction(patientId: Long, type: String, amount: Double, notes: String) {
-        val tx = Transaction(
+    suspend fun recordTransaction(
+        /** patient ID */ patientId: Long, 
+        /** tag */ type: String, 
+        /** amount */ amount: Long, 
+        /** narrative */ notes: String,
+    ) {
+        addTransactionUseCase(
             patientId = patientId,
             type = type,
             amount = amount,
             notes = notes,
-            createdAt = Date()
+            date = Date(),
+            context = context,
         )
-        transactionRepository.insertTransaction(tx)
     }
 
     /**
-     * Navigates the UI to a specific destination.
+     * Transitions between application screens.
      */
-    fun navigateTo(navController: NavController, screenId: String, patientId: Long? = null, villageId: Long? = null) {
+    fun navigateTo(
+        /** UI controller */ navController: NavController, 
+        /** tag */ screenId: String, 
+        /** patient focus */ patientId: Long? = null, 
+        /** village focus */ villageId: Long? = null,
+    ) {
         when (screenId) {
-            "HOME" -> navController.navigate(Screen.Dashboard.route)
-            "DETAIL" -> patientId?.let { navController.navigate(Screen.PatientDetail.createRoute(it)) }
             "ADD_PATIENT" -> navController.navigate(Screen.AddPatient.route)
-            "ANALYTICS" -> navController.navigate("analytics?villageId=${villageId ?: ""}")
+            "ANALYTICS" -> {
+                val route = if (villageId != null) {
+                    Screen.Analytics.createRoute(villageId)
+                } else {
+                    Screen.Analytics.route
+                }
+                navController.navigate(route)
+            }
             "VILLAGES" -> navController.navigate("villages_families")
+            "DETAIL" -> {
+                patientId?.let { 
+                    navController.navigate(Screen.PatientDetail.createRoute(it)) 
+                }
+            }
         }
     }
 
     /**
-     * Searches for a patient by name or alias.
+     * Searches for a patient by voice term.
      */
-    suspend fun findPatient(query: String) = patientRepository.findPatientByVoice(query)
-    
+    suspend fun findPatient(/** text */ query: String): List<Patient> {
+        return patientRepository.findPatientByVoice(query)
+    }
+
     /**
-     * Returns the full details of a specific patient.
+     * Synchronously resolves patient details.
      */
-    suspend fun getPatientDetails(patientId: Long) = patientRepository.getPatientByIdSync(patientId)
+    suspend fun getPatientDetails(/** target ID */ patientId: Long): Patient? {
+        return patientRepository.getPatientByIdSync(patientId)
+    }
 }

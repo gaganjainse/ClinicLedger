@@ -1,61 +1,65 @@
 package com.clinicledger.data.local
 
 import androidx.lifecycle.LiveData
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.clinicledger.data.models.Transaction
 import java.util.Date
 
 /**
  * Room DAO for the transactions table.
- * Transactions track medicine costs, payments, and balance adjustments.
- * The patient's running balance is computed by aggregating transactions
- * rather than being stored as a separate field.
  */
 @Dao
 interface TransactionDao {
 
+    /** Inserts a new transaction record. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTransaction(transaction: Transaction): Long
+    suspend fun insertTransaction(/** model */ transaction: Transaction): Long
 
-    /** Returns all transactions newest-first */
+    /** Returns all transactions newest-first. */
     @Query("SELECT * FROM transactions ORDER BY created_at DESC")
     fun getAllTransactions(): LiveData<List<Transaction>>
 
-    /** Non-observable variant of getAllTransactions for coroutine contexts */
+    /** Returns all transactions newest-first (Sync). */
     @Query("SELECT * FROM transactions ORDER BY created_at DESC")
     suspend fun getAllTransactionsSync(): List<Transaction>
 
-    /** Returns all transactions for a specific patient, newest first */
+    /** Returns all transactions for a specific patient, newest first. */
     @Query("SELECT * FROM transactions WHERE patient_id = :patientId ORDER BY created_at DESC")
-    fun getTransactionsByPatient(patientId: Long): LiveData<List<Transaction>>
+    fun getTransactionsByPatient(/** target ID */ patientId: Long): LiveData<List<Transaction>>
 
     /**
-     * Computes the patient's balance by summing debits (medicine/adjustment)
-     * as positive and credits (payment) as negative. Returns null when
-     * no transactions exist for the patient.
+     * Computes the patient's balance.
+     * Medicine and adjustments add to dues; payments reduce them.
+     * 'payer_record' and other types are ignored for balance calculation.
      */
-    @Query("SELECT SUM(CASE WHEN type = 'medicine' OR type = 'adjustment' THEN amount ELSE -amount END) FROM transactions WHERE patient_id = :patientId")
-    suspend fun getPatientBalance(patientId: Long): Double?
+    @Query(
+        """
+        SELECT SUM(CASE 
+            WHEN type = 'medicine' OR type = 'adjustment' THEN amount 
+            WHEN type = 'payment' THEN -amount 
+            ELSE 0 END) 
+        FROM transactions WHERE patient_id = :patientId
+        """,
+    )
+    suspend fun getPatientBalance(/** target ID */ patientId: Long): Long?
 
-    /** Total medicine costs since a given date, for reporting */
+    /** Total medicine costs since a given date. */
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'medicine' AND created_at >= :since")
-    suspend fun getTotalMedicineSince(since: Date): Double
+    suspend fun getTotalMedicineSince(/** start date */ since: Date): Long
 
-    /** Total payments received since a given date, for reporting */
+    /** Total payments received since a given date. */
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'payment' AND created_at >= :since")
-    suspend fun getTotalPaymentsSince(since: Date): Double
+    suspend fun getTotalPaymentsSince(/** start date */ since: Date): Long
 
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions WHERE type = 'payment' AND created_at >= :since")
-    fun getTotalCollectedSinceObservable(since: Date): LiveData<Double>
+    /** Total collected as observable. */
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'payment' AND created_at >= :since")
+    fun getTotalCollectedSinceObservable(/** start date */ since: Date): LiveData<Long>
 
+    /** Returns transactions since [since] chronologically. */
     @Query("SELECT * FROM transactions WHERE created_at >= :since ORDER BY created_at DESC")
-    suspend fun getTransactionsSinceSync(since: Date): List<Transaction>
+    suspend fun getTransactionsSinceSync(/** threshold */ since: Date): List<Transaction>
 
+    /** Wipes the entire transactions table. */
     @Query("DELETE FROM transactions")
     suspend fun deleteAll()
 }

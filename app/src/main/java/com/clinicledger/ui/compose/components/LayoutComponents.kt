@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.clinicledger.R
@@ -26,14 +26,20 @@ import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClinicTopAppBar(
+    /** English primary title */
     title: String,
+    /** Optional Hindi primary title */
     titleHindi: String? = null,
+    /** Optional supporting subtitle */
     subtitle: String? = null,
+    /** Optional leading navigation icon */
     navigationIcon: @Composable (() -> Unit)? = null,
+    /** Optional trailing action buttons */
     actions: @Composable RowScope.() -> Unit = {},
+    /** Visual theme overrides */
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.background,
-        titleContentColor = MaterialTheme.colorScheme.primary
+        titleContentColor = MaterialTheme.colorScheme.primary,
     ),
 ) {
     val isHindi = LocalIsHindi.current
@@ -47,7 +53,7 @@ fun ClinicTopAppBar(
                     contentDescription = null,
                     modifier = Modifier
                         .size(32.dp)
-                        .clip(CircleShape)
+                        .clip(CircleShape),
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -56,14 +62,14 @@ fun ClinicTopAppBar(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (!subtitle.isNullOrBlank()) {
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
@@ -72,7 +78,10 @@ fun ClinicTopAppBar(
         navigationIcon = navigationIcon ?: {},
         actions = actions,
         colors = colors,
-        windowInsets = TopAppBarDefaults.windowInsets
+        // Reduced window insets to prevent excessive top white space
+        windowInsets = WindowInsets.statusBars.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
+        ),
     )
 }
 
@@ -80,12 +89,12 @@ fun ClinicTopAppBar(
  * Standard back button icon for top bars.
  */
 @Composable
-fun BackNavigationIcon(onBack: () -> Unit) {
+fun BackNavigationIcon(/** Click handler */ onBack: () -> Unit) {
     IconButton(onClick = onBack) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = "Back",
-            tint = MaterialTheme.colorScheme.primary
+            contentDescription = stringResource(R.string.cancel),
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -94,12 +103,12 @@ fun BackNavigationIcon(onBack: () -> Unit) {
  * Standard menu (hamburger) icon for top bars.
  */
 @Composable
-fun MenuNavigationIcon(onClick: () -> Unit) {
+fun MenuNavigationIcon(/** Click handler */ onClick: () -> Unit) {
     IconButton(onClick = onClick) {
         Icon(
             imageVector = Icons.Rounded.Menu,
-            contentDescription = "Menu",
-            tint = MaterialTheme.colorScheme.primary
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -109,14 +118,22 @@ fun MenuNavigationIcon(onClick: () -> Unit) {
  */
 @Composable
 fun ClinicScaffold(
+    /** Screen title */
     title: String,
+    /** Localized title */
     titleHindi: String? = null,
+    /** Sub-title string */
     subtitle: String? = null,
+    /** Back button handler */
     onBack: (() -> Unit)? = null,
+    /** Side menu handler */
     onMenu: (() -> Unit)? = null,
+    /** Top bar actions */
     actions: @Composable RowScope.() -> Unit = {},
+    /** Action button */
     floatingActionButton: @Composable () -> Unit = {},
-    content: @Composable (PaddingValues) -> Unit
+    /** Main screen content */
+    content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -125,15 +142,19 @@ fun ClinicScaffold(
                 titleHindi = titleHindi,
                 subtitle = subtitle,
                 navigationIcon = when {
-                    onBack != null -> { { BackNavigationIcon(onBack) } }
-                    onMenu != null -> { { MenuNavigationIcon(onMenu) } }
+                    onBack != null -> {
+                        { BackNavigationIcon(onBack) }
+                    }
+                    onMenu != null -> {
+                        { MenuNavigationIcon(onMenu) }
+                    }
                     else -> null
                 },
-                actions = actions
+                actions = actions,
             )
         },
         floatingActionButton = floatingActionButton,
-        content = content
+        content = content,
     )
 }
 
@@ -151,7 +172,12 @@ fun ClinicLoadingState() {
  * Displays a placeholder message when a list is empty or search yields no results.
  */
 @Composable
-fun ClinicEmptyState(message: String, messageHindi: String? = null) {
+fun ClinicEmptyState(
+    /** English message */
+    message: String,
+    /** Optional Hindi message */
+    messageHindi: String? = null,
+) {
     val isHindi = LocalIsHindi.current
     val displayMessage = if (isHindi && !messageHindi.isNullOrBlank()) messageHindi else message
     Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -159,7 +185,7 @@ fun ClinicEmptyState(message: String, messageHindi: String? = null) {
             text = displayMessage,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
 }

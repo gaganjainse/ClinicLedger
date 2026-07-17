@@ -1,20 +1,30 @@
 package com.clinicledger.data.models
 
-import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
 
 /**
- * Stores local "Skills" learned by the Agent through doctor corrections.
+ * Data entity representing a custom mapped voice command.
  */
 @Entity(tableName = "learned_skills")
-@Immutable
 data class LearnedSkill(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val triggerPhrase: String, // e.g., "hisaab saaf"
-    val toolId: String, // e.g., "LEDGER_SETTLE"
+    /** Unique ID */
+    @PrimaryKey(autoGenerate = true) 
+    val id: Long = 0,
+
+    /** Trigger phrase detected by STT */
+    val triggerPhrase: String,
+
+    /** Target clinical protocol ID */
+    val toolId: String,
+
+    /** Detection confidence score */
     val confidence: Float = 1.0f,
+
+    /** Number of times used */
     val useCount: Int = 1,
-    val lastUsedAt: Date = Date()
+
+    /** Last activation time */
+    val lastUsedAt: Date = Date(),
 )

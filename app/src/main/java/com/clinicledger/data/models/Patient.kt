@@ -1,54 +1,67 @@
 package com.clinicledger.data.models
 
-import androidx.compose.runtime.Immutable
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.Ignore
-import androidx.room.PrimaryKey
+import androidx.room.*
 import java.util.Date
 
 /**
- * Room entity representing a patient in the clinic ledger.
+ * Data entity representing a single patient in the clinic system.
  */
-@Entity(tableName = "patients")
-@Immutable
+@Entity(tableName = Patient.TABLE_NAME)
 data class Patient(
+    /** Unique ID */
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    /** Display name (usually bilingual "Eng / Hin") */
     @ColumnInfo(name = "name")
     val name: String,
 
-    // Foreign key referencing the village this patient belongs to
+    /** Linked village ID */
     @ColumnInfo(name = "village_id")
     val villageId: Long,
 
+    /** Contact phone number */
     @ColumnInfo(name = "phone", defaultValue = "")
     val phone: String = "",
 
+    /** Linked family group ID */
     @ColumnInfo(name = "family_group_id")
     val familyGroupId: Long? = null,
 
+    /** Role in household (e.g. Son, Daughter) */
     @ColumnInfo(name = "relationship", defaultValue = "")
     val relationship: String = "",
 
-    // Denormalized balance derived from transactions; recalculated on each insert/update
-    @ColumnInfo(name = "current_balance", defaultValue = "0.0")
-    val currentBalance: Double = 0.0,
+    /** Cached outstanding balance in Paise */
+    @ColumnInfo(name = "current_balance", defaultValue = "0")
+    val currentBalance: Long = 0L,
 
+    /** Path to profile photo in internal storage */
+    @ColumnInfo(name = "photo_path")
+    val photoPath: String? = null,
+
+    /** Record creation time */
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
     val createdAt: Date = Date(),
 
+    /** Last activity time */
     @ColumnInfo(name = "updated_at", defaultValue = "CURRENT_TIMESTAMP")
-    var updatedAt: Date = Date()
+    var updatedAt: Date = Date(),
 ) {
-    // Populated at query time via JOINs; not persisted in the patients table
+    /** Resolved village object (Non-DB field) */
     @Ignore
     var village: Village? = null
 
+    /** List of aliases (Non-DB field) */
     @Ignore
     var aliases: List<Alias> = emptyList()
 
+    /** List of transactions (Non-DB field) */
     @Ignore
     var transactions: List<Transaction> = emptyList()
+
+    companion object {
+        /** Database table name */
+        const val TABLE_NAME = "patients"
+    }
 }

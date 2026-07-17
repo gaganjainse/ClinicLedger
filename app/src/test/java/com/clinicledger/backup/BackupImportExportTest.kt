@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
+/**
+ * Tests for JSON-based ledger backup serialization and deserialization.
+ */
+@Suppress("HardcodedStringLiteral")
 class BackupImportExportTest {
 
     private val gson: Gson = GsonBuilder()
@@ -29,22 +33,22 @@ class BackupImportExportTest {
             villageId = 1L,
             phone = "9876543210",
             familyGroupId = 10L,
-            currentBalance = 350.0
+            currentBalance = 35000L,
         )
         val alias = Alias(id = 5L, patientId = 100L, alias = "Ramu")
         val transaction1 = Transaction(
             id = 1001L,
             patientId = 100L,
             type = "medicine",
-            amount = 500.0,
-            notes = "Antibiotics"
+            amount = 50000L,
+            notes = "Antibiotics",
         )
         val transaction2 = Transaction(
             id = 1002L,
             patientId = 100L,
             type = "payment",
-            amount = 150.0,
-            notes = "Partial cash payment"
+            amount = 15000L,
+            notes = "Partial cash payment",
         )
 
         val backupData = BackupData(
@@ -53,7 +57,7 @@ class BackupImportExportTest {
             patients = listOf(patient),
             aliases = listOf(alias),
             transactions = listOf(transaction1, transaction2),
-            familyGroups = listOf(familyGroup)
+            familyGroups = listOf(familyGroup),
         )
 
         // Serialize to JSON
@@ -74,23 +78,22 @@ class BackupImportExportTest {
         assertEquals("Ramu", restored.aliases[0].alias)
         assertEquals(2, restored.transactions.size)
         assertEquals("medicine", restored.transactions[0].type)
-        assertEquals(500.0, restored.transactions[0].amount, 0.01)
+        assertEquals(50000L, restored.transactions[0].amount)
         assertEquals("payment", restored.transactions[1].type)
-        assertEquals(150.0, restored.transactions[1].amount, 0.01)
+        assertEquals(15000L, restored.transactions[1].amount)
         assertEquals(1, restored.familyGroups?.size)
         assertEquals("Sharma Family", restored.familyGroups?.get(0)?.name)
     }
 
     @Test
     fun testBackupVersionValidation() {
-        // Current version is 1. Test version matching and non-matching behavior
         val backupData = BackupData(
             version = BackupData.CURRENT_VERSION,
             villages = emptyList(),
             patients = emptyList(),
             aliases = emptyList(),
             transactions = emptyList(),
-            familyGroups = emptyList()
+            familyGroups = emptyList(),
         )
 
         assertEquals(1, BackupData.CURRENT_VERSION)
@@ -99,7 +102,6 @@ class BackupImportExportTest {
 
     @Test
     fun testLegacyBackupImport_withoutFamilyGroups() {
-        // Older backups might not have the familyGroups field. Ensure it deserializes cleanly and defaults
         val legacyJson = """
             {
               "version": 1,
@@ -114,7 +116,6 @@ class BackupImportExportTest {
         val restored = gson.fromJson(legacyJson, BackupData::class.java)
         assertNotNull(restored)
         assertEquals(1, restored.version)
-        // Check that familyGroups can be null or empty list (the default is handled gracefully)
-        assertTrue(restored.familyGroups == null || restored.familyGroups.isEmpty())
+        assertTrue(restored.familyGroups == null || restored.familyGroups!!.isEmpty())
     }
 }

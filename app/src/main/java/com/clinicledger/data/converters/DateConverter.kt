@@ -4,18 +4,18 @@ import androidx.room.TypeConverter
 import java.util.Date
 
 /**
- * Room TypeConverter that serializes java.util.Date to Long (epoch millis)
- * for storage in SQLite, and deserializes Long values back to Date.
- * This is necessary because Room cannot natively persist Date objects.
+ * Room TypeConverter for Date serialization.
  */
 class DateConverter {
+    /** Converts Long to Date */
     @TypeConverter
-    fun fromTimestamp(value: Long?): Date? {
+    fun fromTimestamp(/** epoch */ value: Long?): Date? {
         return value?.let { Date(it) }
     }
 
+    /** Converts Date to Long */
     @TypeConverter
-    fun dateToTimestamp(date: Date?): Long? {
+    fun dateToTimestamp(/** date */ date: Date?): Long? {
         return date?.time
     }
 }

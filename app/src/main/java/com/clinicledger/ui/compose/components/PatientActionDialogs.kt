@@ -5,111 +5,142 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.clinicledger.R
 import com.clinicledger.data.models.FamilyGroup
+import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Village
 import com.clinicledger.ui.util.LocaleManager
-import java.util.Date
 
 /**
- * Dialog for adding a secondary name (alias) for a patient.
+ * Dialog for adding a patient alias.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddAliasDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val isHindi = LocaleManager.LocalIsHindi.current
-    var name by remember { mutableStateOf("") }
+fun AddAliasDialog(
+    /** dismiss callback */
+    onDismiss: () -> Unit, 
+    /** success callback */
+    onConfirm: (String) -> Unit,
+) {
+    var alias by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isHindi) "उपनाम जोड़ें" else "Add Alias") },
+        title = { Text(stringResource(R.string.add_alias_label)) },
         text = {
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(if (isHindi) "नाम" else "Name") },
+                value = alias,
+                onValueChange = { alias = it },
+                label = { Text(stringResource(R.string.alias_hint)) },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(12.dp),
             )
         },
         confirmButton = {
-            Button(onClick = { if (name.isNotBlank()) onConfirm(name) }) {
-                Text(if (isHindi) "जोड़ें" else "Add")
+            Button(
+                onClick = { if (alias.isNotBlank()) onConfirm(alias) },
+                enabled = alias.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(if (isHindi) "रद्द करें" else "Cancel")
+                Text(stringResource(R.string.cancel))
             }
-        }
+        },
     )
 }
 
 /**
- * Dialog for linking a patient to a family group or creating a new group.
+ * Dialog to link a patient to a family group.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LinkFamilyDialog(
+    /** choices */
     familyGroups: List<FamilyGroup>,
+    /** current selection */
     currentFamilyId: Long?,
+    /** villages for new group */
     villages: List<Village>,
+    /** dismiss callback */
     onDismiss: () -> Unit,
+    /** callback */
     onLink: (Long?) -> Unit,
-    onCreateNew: (String, Long) -> Unit
+    /** callback */
+    onCreateNew: (String, Long) -> Unit,
 ) {
-    val isHindi = LocaleManager.LocalIsHindi.current
-    var showCreateNew by remember { mutableStateOf(false) }
     var newFamilyName by remember { mutableStateOf("") }
     var selectedVillageId by remember { mutableLongStateOf(villages.firstOrNull()?.id ?: 0L) }
+    var showCreateNew by remember { mutableStateOf(value = false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isHindi) "परिवार से जोड़ें" else "Link to Family") },
+        title = { Text(stringResource(R.string.link_to_family_title)) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (showCreateNew) {
                     OutlinedTextField(
                         value = newFamilyName,
                         onValueChange = { newFamilyName = it },
-                        label = { Text(if (isHindi) "नया परिवार नाम" else "New Family Name") },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text(stringResource(R.string.new_family_name_label)) },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(if (isHindi) "गाँव चुनें" else "Select Village")
-                    villages.forEach { v ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { selectedVillageId = v.id }) {
-                            RadioButton(selected = selectedVillageId == v.id, onClick = { selectedVillageId = v.id })
+                    
+                    Text(
+                        text = stringResource(R.string.select_village_label), 
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    villages.forEach { /** village */ v ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically, 
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedVillageId = v.id }
+                                .padding(vertical = 4.dp),
+                        ) {
+                            RadioButton(
+                                selected = selectedVillageId == v.id, 
+                                onClick = { selectedVillageId = v.id },
+                            )
                             Text(LocaleManager.getLocalizedVillage(v.name, v.nameHindi))
                         }
                     }
                 } else {
                     TextButton(onClick = { showCreateNew = true }) {
-                        Text(if (isHindi) "+ नया परिवार बनाएँ" else "+ Create New Family")
+                        Text(stringResource(R.string.new_family_button))
                     }
+                    
                     if (currentFamilyId != null) {
                         TextButton(onClick = { onLink(null) }) {
-                            Text(if (isHindi) "परिवार से हटाएँ" else "Unlink from Family", color = MaterialTheme.colorScheme.error)
+                            Text(
+                                stringResource(R.string.unlink_family), 
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    LazyColumn {
-                        items(familyGroups) { group ->
-                            val isSelected = group.id == currentFamilyId
-                            Surface(
-                                modifier = Modifier.fillMaxWidth().clickable { onLink(group.id) },
-                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(group.name, modifier = Modifier.padding(12.dp))
-                            }
+
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(familyGroups) { /** group */ group ->
+                            ListItem(
+                                headlineContent = { Text(LocaleManager.getLocalizedText(group.name)) },
+                                trailingContent = {
+                                    RadioButton(
+                                        selected = group.id == currentFamilyId,
+                                        onClick = { onLink(group.id) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { onLink(group.id) },
+                            )
                         }
                     }
                 }
@@ -117,73 +148,166 @@ fun LinkFamilyDialog(
         },
         confirmButton = {
             if (showCreateNew) {
-                Button(onClick = { if (newFamilyName.isNotBlank()) onCreateNew(newFamilyName, selectedVillageId) }) {
-                    Text(if (isHindi) "बनाएँ और जोड़ें" else "Create & Link")
+                Button(
+                    onClick = { onCreateNew(newFamilyName, selectedVillageId) },
+                    enabled = newFamilyName.isNotBlank(),
+                ) {
+                    Text(stringResource(R.string.create_and_link_btn))
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = if (showCreateNew) { { showCreateNew = false } } else onDismiss) {
-                Text(if (isHindi) "रद्द करें" else "Cancel")
-            }
-        }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
     )
 }
 
 /**
- * Dialog for adding a new medicine charge or recording a payment for the patient.
+ * Dialog for adding a medicine or payment transaction.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("HardcodedStringLiteral")
 @Composable
 fun AddTransactionDialog(
+    /** tag */
     type: String,
-    isHindi: Boolean,
+    /** context */
+    currentPatient: Patient,
+    /** data set */
+    familyMembers: List<Patient>,
+    /** locale (legacy) */
+    isHindi: Boolean = false,
+    /** dismiss callback */
     onDismiss: () -> Unit,
-    onConfirm: (Double, String, Date) -> Unit
+    /** callback */
+    onConfirm: (amount: Long, notes: String, date: java.util.Date, beneficiaryId: Long?) -> Unit,
 ) {
     var amount by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    val title = when (type) {
-        "medicine" -> if (isHindi) "दवाई जोड़ें" else "Add Medicine"
-        "payment" -> if (isHindi) "जमा जोड़ें" else "Add Payment"
-        else -> if (isHindi) "समायोजन" else "Adjustment"
+    var selectedBeneficiary by remember { mutableStateOf(currentPatient) }
+    var expanded by remember { mutableStateOf(value = false) }
+
+    val amountAsLong = amount.toLongOrNull() ?: 0L
+    val isAmountValid = if (type == "payment") {
+        (amountAsLong > 0) && (amountAsLong <= selectedBeneficiary.currentBalance)
+    } else {
+        (amountAsLong > 0) || (type == "adjustment")
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = {
+            Text(
+                text = when (type) {
+                    "medicine" -> stringResource(R.string.medicine_given_label)
+                    "payment" -> stringResource(R.string.payment_received_label)
+                    else -> stringResource(R.string.balance_adjustment_label)
+                },
+                fontWeight = FontWeight.Bold,
+            )
+        },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if ((type == "payment") && familyMembers.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.paying_for_whom_label), 
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it },
+                    ) {
+                        OutlinedTextField(
+                            readOnly = true,
+                            value = if (selectedBeneficiary.id == currentPatient.id) {
+                                stringResource(R.string.self_format, currentPatient.name)
+                            } else {
+                                selectedBeneficiary.name
+                            },
+                            onValueChange = {},
+                            trailingIcon = { 
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) 
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded, 
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { 
+                                    Text(stringResource(R.string.self_format, currentPatient.name)) 
+                                },
+                                onClick = {
+                                    selectedBeneficiary = currentPatient
+                                    expanded = false
+                                },
+                            )
+                            familyMembers.filter { it.id != currentPatient.id }.forEach { /** member */ member ->
+                                DropdownMenuItem(
+                                    text = { Text(member.name) },
+                                    onClick = {
+                                        selectedBeneficiary = member
+                                        expanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text(if (isHindi) "राशि (₹)" else "Amount (₹)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { input -> 
+                        if (input.all { it.isDigit() }) amount = input 
+                    },
+                    label = { Text(stringResource(R.string.amount_rs_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    suffix = {
+                        if (type == "payment") {
+                            Text(
+                                text = stringResource(
+                                    R.string.max_dues_format, 
+                                    LocaleManager.formatAmount(selectedBeneficiary.currentBalance),
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    },
+                    isError = (type == "payment") && (amountAsLong > selectedBeneficiary.currentBalance),
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                
+                if ((type == "payment") && (amountAsLong > selectedBeneficiary.currentBalance)) {
+                    Text(
+                        text = stringResource(R.string.cannot_exceed_dues_msg), 
+                        style = MaterialTheme.typography.labelSmall, 
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(if (isHindi) "विवरण" else "Notes") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text(stringResource(R.string.notes_optional_label)) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val amt = amount.toDoubleOrNull() ?: 0.0
-                    if (amt > 0 || type == "adjustment") onConfirm(amt, notes, Date())
+                onClick = { 
+                    onConfirm(amountAsLong, notes, java.util.Date(), selectedBeneficiary.id) 
                 },
+                enabled = isAmountValid,
             ) {
-                Text(if (isHindi) "पुष्टि करें" else "Confirm")
+                Text(stringResource(R.string.confirm_btn))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(if (isHindi) "रद्द करें" else "Cancel")
-            }
-        }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
     )
 }

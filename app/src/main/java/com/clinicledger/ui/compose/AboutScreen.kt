@@ -1,7 +1,6 @@
 package com.clinicledger.ui.compose
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -10,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.clinicledger.BuildConfig
@@ -17,74 +17,94 @@ import com.clinicledger.R
 import com.clinicledger.ui.compose.components.ClinicScaffold
 
 /**
- * Modern "About" page displaying system metadata and branding.
+ * About screen displaying application metadata and version info.
  */
+@Suppress("HardcodedStringLiteral")
 @Composable
 fun AboutScreen(
-    onNavigateBack: () -> Unit
+    /** Callback to return to previous screen */
+    onNavigateBack: () -> Unit,
 ) {
     ClinicScaffold(
-        title = "About Clinic Ledger",
-        onBack = onNavigateBack
+        title = stringResource(R.string.settings_app_info),
+        onBack = onNavigateBack,
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
+            Spacer(modifier = Modifier.height(40.dp))
+            
             Image(
                 painter = painterResource(id = R.drawable.app_icon),
                 contentDescription = null,
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(CircleShape)
+                    .clip(CircleShape),
             )
             
-            Spacer(Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = "Clinic Ledger OS",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
             )
             
             Text(
-                text = "v${BuildConfig.VERSION_NAME} (Ultra-Performance)",
+                text = stringResource(R.string.precision_version_desc),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.primary,
             )
             
-            Spacer(Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(48.dp))
             
-            MetadataRow("Target SDK", "37")
-            MetadataRow("Build Engine", "AGP 9.3.0")
-            MetadataRow("Kotlin", "2.4.10")
-            MetadataRow("State", "Stable / Verified")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    MetadataRow("Target SDK", "37")
+                    MetadataRow("Build Engine", "AGP 9.3.0")
+                    MetadataRow("Kotlin", "2.4.10")
+                    MetadataRow("State", "Stable / Verified")
+                    MetadataRow("Version", "v${BuildConfig.VERSION_NAME}")
+                }
+            }
             
-            Spacer(Modifier.height(64.dp))
+            Spacer(modifier = Modifier.weight(1f))
             
             Text(
                 text = "© 2026 Clinic Ledger Systems",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 @Composable
-private fun MetadataRow(label: String, value: String) {
+private fun MetadataRow(/** Label */ label: String, /** Value */ value: String) {
     Row(
         modifier = Modifier
-            .width(240.dp)
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.bodySmall, 
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value, 
+            style = MaterialTheme.typography.bodySmall, 
+            fontWeight = FontWeight.Bold,
+        )
     }
 }

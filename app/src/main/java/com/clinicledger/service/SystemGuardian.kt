@@ -7,10 +7,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Ensures the robustness and integrity of the Clinic Ledger OS.
- * Performs background "Self-Healing" tasks to maintain data and graph quality.
+ * Diagnostic service to ensure database integrity and system health.
+ * Performs periodic verification of patient records and knowledge links.
  */
-class SystemGuardian(context: Context) {
+class SystemGuardian(/** context */ context: Context) {
     private val database = ClinicLedgerDatabase.getDatabase(context)
 
     companion object {
@@ -18,29 +18,31 @@ class SystemGuardian(context: Context) {
     }
 
     /**
-     * Performs a full system health check.
+     * Executes a full system diagnostic sweep.
      */
-    suspend fun performHealthCheck() = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Starting System Health Check...")
-        
+    suspend fun performHealthCheck(): Unit = withContext(Dispatchers.IO) {
         try {
-            checkDatabaseIntegrity()
-            healKnowledgeGraph()
-            Log.d(TAG, "Health Check Completed: ALL SYSTEMS NOMINAL")
+            // 1. Data Integrity Check
+            verifyPatientIntegrity()
+            
+            // 2. Knowledge Graph Check
+            verifySemanticLinks()
         } catch (e: Exception) {
             Log.e(TAG, "Health Check Failed: ${e.message}")
         }
     }
 
-    private suspend fun checkDatabaseIntegrity() {
-        // Implementation: Verify no orphaned transactions or invalid balances
+    private suspend fun verifyPatientIntegrity() {
         val patients = database.patientDao().getAllPatientsSync()
-        Log.d(TAG, "Integrity: Verified ${patients.size} patient records.")
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Integrity: Verified ${patients.size} patient records.")
+        }
     }
 
-    private suspend fun healKnowledgeGraph() {
-        // Implementation: Auto-link missing relationships based on name patterns
+    private suspend fun verifySemanticLinks() {
         val knowledge = database.clinicKnowledgeDao().searchKnowledge("")
-        Log.d(TAG, "Knowledge Graph: Scanned ${knowledge.size} semantic links.")
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Knowledge Graph: Scanned ${knowledge.size} semantic links.")
+        }
     }
 }

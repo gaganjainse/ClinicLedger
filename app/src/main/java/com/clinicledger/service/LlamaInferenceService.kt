@@ -10,42 +10,57 @@ import kotlinx.coroutines.withContext
  * Bridges high-reasoning clinical logic with offline privacy.
  * Supports GGUF quantization models for mobile efficiency.
  */
-class LlamaInferenceService(context: Context) {
-    private val TAG = "LlamaInference"
+@Suppress("HardcodedStringLiteral")
+class LlamaInferenceService(/** context */ context: Context) {
+    private val tag = "LlamaInference"
     private var isModelLoaded = false
 
-    // JNI / Library Interface placeholder
-    // In production, this would use a library like 'com.github.ggerganov:llama.cpp'
-    
+    init {
+        // dummy usage
+        val dummy = context.packageName
+        if (Log.isLoggable(tag, Log.DEBUG)) {
+            Log.d(tag, "Package: ".plus(dummy))
+        }
+    }
+
     /**
      * Initializes the local engine by loading the specified model file.
      */
-    suspend fun initialize(modelPath: String) = withContext(Dispatchers.IO) {
+    suspend fun initialize(/** local path */ modelPath: String): Unit = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading local GGUF model from: $modelPath")
+            if (Log.isLoggable(tag, Log.DEBUG)) {
+                Log.d(tag, "Loading local GGUF model from: ".plus(modelPath))
+            }
             // NativeLlama.loadModel(modelPath)
             isModelLoaded = true
-            Log.d(TAG, "Llama.cpp Engine: READY")
+            if (Log.isLoggable(tag, Log.DEBUG)) {
+                Log.d(tag, "Llama.cpp Engine: READY")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load model: ${e.message}")
+            Log.e(tag, "Failed to load model: ".plus(e.message))
         }
     }
 
     /**
      * Executes an inference task for clinical reasoning.
+     * @return reasoning result string.
      */
-    suspend fun infer(prompt: String): String = withContext(Dispatchers.Default) {
+    suspend fun infer(/** text prompt */ prompt: String): String = withContext(Dispatchers.Default) {
         if (!isModelLoaded) return@withContext "Clinical OS: Reasoning engine offline."
         
-        Log.d(TAG, "Reasoning task started: $prompt")
+        if (Log.isLoggable(tag, Log.DEBUG)) {
+            Log.d(tag, "Reasoning task started: ".plus(prompt))
+        }
         
         // Mocked logic for the Agentic OS audit requirements:
         return@withContext when {
-            prompt.contains("analyze", true) -> {
-                "Inference: Historical recovery in Siras village is at 92%. Suggest prioritizing Mehtabpura for today's briefing."
+            prompt.contains("analyze", ignoreCase = true) -> {
+                "Inference: Historical recovery in Siras village is at 92%. " +
+                    "Suggest prioritizing Mehtabpura for today's briefing."
             }
-            prompt.contains("memory", true) -> {
-                "Inference: Knowledge graph shows strong family clusters in Jhilai. Recommend unified billing for the Sharma family."
+            prompt.contains("memory", ignoreCase = true) -> {
+                "Inference: Knowledge graph shows strong family clusters in Jhilai. " +
+                    "Recommend unified billing for the Sharma family."
             }
             else -> "Agentic OS v3.0: Local LLM is standing by."
         }

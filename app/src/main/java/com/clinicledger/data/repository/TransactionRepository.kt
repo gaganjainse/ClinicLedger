@@ -4,67 +4,59 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import com.clinicledger.data.local.ClinicLedgerDatabase
 import com.clinicledger.data.models.Transaction
-import com.clinicledger.ui.util.DateTimeUtils
-import java.util.*
+import java.util.Date
 
 /**
- * Repository for managing clinic transactions.
- * Handles insertion of transactions and automatic balance recalculation for patients.
+ * Repository for managing clinical transactions and balance synchronization.
  */
-class TransactionRepository(context: Context) {
+class TransactionRepository(/** App context */ context: Context) {
+
     private val database = ClinicLedgerDatabase.getDatabase(context)
     private val transactionDao = database.transactionDao()
     private val patientDao = database.patientDao()
 
     /**
-     * Records a new transaction and updates the patient's denormalized balance.
+     * Inserts a transaction and triggers balance recalculation.
      */
-    suspend fun insertTransaction(transaction: Transaction): Long {
-        val transactionId = transactionDao.insertTransaction(transaction)
+    suspend fun insertTransaction(/** Model to insert */ transaction: Transaction): Long {
+        val id = transactionDao.insertTransaction(transaction)
         recalculateBalance(transaction.patientId, transaction.createdAt)
-        return transactionId
+        return id
+    }
+
+    private suspend fun recalculateBalance(/** target ID */ patientId: Long, /** timestamp */ customDate: Date? = null) {
+        val newBalance = transactionDao.getPatientBalance(patientId) ?: 0L
+        patientDao.setPatientBalance(patientId, newBalance, customDate ?: Date())
     }
 
     /**
-     * Sums all transactions for a patient and updates the patient record.
+     * Retrieves transactions for a specific patient.
      */
-    private suspend fun recalculateBalance(patientId: Long, customDate: Date? = null) {
-        val rawBalance = transactionDao.getPatientBalance(patientId) ?: 0.0
-        patientDao.setPatientBalance(patientId, rawBalance, customDate ?: Date())
-    }
+    fun getTransactionsByPatient(/** target ID */ patientId: Long): LiveData<List<Transaction>> = 
+        transactionDao.getTransactionsByPatient(patientId)
 
     /**
-     * Returns an observable list of transactions for a specific patient.
+     * Retrieves all system transactions.
      */
-    fun getTransactionsByPatient(patientId: Long): LiveData<List<Transaction>> {
-        return transactionDao.getTransactionsByPatient(patientId)
-    }
+    fun getAllTransactions(): LiveData<List<Transaction>> = 
+        transactionDao.getAllTransactions()
 
     /**
-     * Returns all transactions in the system.
+     * Retrieves all system transactions synchronously.
      */
-    fun getAllTransactions(): LiveData<List<Transaction>> = transactionDao.getAllTransactions()
+    suspend fun getAllTransactionsSync(): List<Transaction> = 
+        transactionDao.getAllTransactionsSync()
 
     /**
-     * Returns a non-observable list of all transactions.
+     * Retrieves the sum of collections since [since].
      */
-    suspend fun getAllTransactionsSync(): List<Transaction> = transactionDao.getAllTransactionsSync()
+    fun getTotalCollectedSinceObservable(/** threshold */ since: Date): LiveData<Long> = 
+        transactionDao.getTotalCollectedSinceObservable(since)
 
     /**
-     * Calculates total medicine dues recorded since the given date.
+     * Wipes the entire transactions table.
      */
-    suspend fun getTotalMedicineSince(since: Date): Double = transactionDao.getTotalMedicineSince(since)
-
-    /**
-     * Calculates total payments received since the given date.
-     */
-    suspend fun getTotalPaymentsSince(since: Date): Double = transactionDao.getTotalPaymentsSince(since)
-
-    /**
-     * Returns an observable total of collections for the current day.
-     */
-    fun getTotalCollectedTodayObservable(): LiveData<Double> {
-        val midnight = DateTimeUtils.getStartOfDay()
-        return transactionDao.getTotalCollectedSinceObservable(midnight)
+    suspend fun deleteAll() {
+        transactionDao.deleteAll()
     }
 }

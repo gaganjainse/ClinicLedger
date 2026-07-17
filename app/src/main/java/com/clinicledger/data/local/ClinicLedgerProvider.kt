@@ -3,12 +3,14 @@ package com.clinicledger.data.local
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
-import android.content.UriMatcher
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.sqlite.db.SimpleSQLiteQuery
 
+/**
+ * Legacy ContentProvider to expose clinic data to system-level integrations.
+ */
 class ClinicLedgerProvider : ContentProvider() {
 
     private companion object {
@@ -23,7 +25,7 @@ class ClinicLedgerProvider : ContentProvider() {
         private const val TRANSACTIONS = 400
         private const val TRANSACTIONS_ID = 401
 
-        private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
+        private val uriMatcher = android.content.UriMatcher(android.content.UriMatcher.NO_MATCH).apply {
             addURI(AUTHORITY, "patients", PATIENTS)
             addURI(AUTHORITY, "patients/#", PATIENTS_ID)
             addURI(AUTHORITY, "villages", VILLAGES)
@@ -35,22 +37,29 @@ class ClinicLedgerProvider : ContentProvider() {
         }
 
         private val TABLE_COLUMNS = mapOf(
-            "patients" to arrayOf("id", "name", "village_id", "phone", "current_balance", "created_at", "updated_at"),
+            "patients" to arrayOf(
+                "id", "name", "village_id", "phone", 
+                "current_balance", "created_at", "updated_at",
+            ),
             "villages" to arrayOf("id", "name", "created_at"),
             "aliases" to arrayOf("id", "patient_id", "alias", "created_at"),
-            "transactions" to arrayOf("id", "patient_id", "type", "amount", "notes", "created_at", "updated_at")
+            "transactions" to arrayOf(
+                "id", "patient_id", "type", "amount", 
+                "notes", "created_at", "updated_at",
+            ),
         )
     }
 
     override fun onCreate(): Boolean = true
 
+    @Suppress("HardcodedStringLiteral")
     override fun query(
-        uri: Uri,
-        projection: Array<String>?,
-        selection: String?,
-        selectionArgs: Array<String>?,
-        sortOrder: String?
-    ): Cursor? {
+        /** Target URI */ uri: Uri,
+        /** Columns */ projection: Array<String>?,
+        /** Filter */ selection: String?,
+        /** Args */ selectionArgs: Array<String>?,
+        /** Sort */ sortOrder: String?,
+    ): Cursor {
         val db = getDatabase().openHelper.readableDatabase
         val match = uriMatcher.match(uri)
         val (table, id) = parseMatch(match, uri)
@@ -58,18 +67,27 @@ class ClinicLedgerProvider : ContentProvider() {
         val finalSelection = buildSelection(id, selection)
         val finalArgs = buildArgs(id, selectionArgs)
 
-        val columns = TABLE_COLUMNS[table]?.joinToString(", ") ?: "*"
+        val columns = projection?.joinToString(", ") ?: (TABLE_COLUMNS[table]?.joinToString(", ") ?: "*")
         val sql = buildString {
-            append("SELECT $columns FROM $table")
-            if (finalSelection != null) append(" WHERE $finalSelection")
-            if (sortOrder != null) append(" ORDER BY $sortOrder")
+            append("SELECT ")
+            append(columns)
+            append(" FROM ")
+            append(table)
+            finalSelection?.let { 
+                append(" WHERE ")
+                append(it)
+            }
+            sortOrder?.let { 
+                append(" ORDER BY ")
+                append(it)
+            }
         }
-        val cursor = db.query(SimpleSQLiteQuery(sql.toString(), finalArgs ?: emptyArray()))
-        cursor.setNotificationUri(context!!.contentResolver, uri)
+        val cursor = db.query(SimpleSQLiteQuery(sql, finalArgs ?: emptyArray()))
+        cursor.setNotificationUri(context?.contentResolver, uri)
         return cursor
     }
 
-    override fun getType(uri: Uri): String? {
+    override fun getType(/** uri */ uri: Uri): String? {
         val isDir = when (uriMatcher.match(uri)) {
             PATIENTS, VILLAGES, ALIASES, TRANSACTIONS -> true
             PATIENTS_ID, VILLAGES_ID, ALIASES_ID, TRANSACTIONS_ID -> false
@@ -80,20 +98,24 @@ class ClinicLedgerProvider : ContentProvider() {
         return "$base/vnd.com.clinicledger.$table"
     }
 
-    override fun insert(uri: Uri, values: ContentValues?): Uri? {
-        if (values == null) return null
+    override fun insert(/** uri */ uri: Uri, /** values */ values: ContentValues?): Uri? {
+        val data = values ?: return null
         val db = getDatabase().openHelper.writableDatabase
         val table = tableForUri(uri)
 
-        val id = db.insert(table, SQLiteDatabase.CONFLICT_REPLACE, values)
+        val id = db.insert(table, SQLiteDatabase.CONFLICT_REPLACE, data)
         if (id == -1L) return null
 
         val resultUri = ContentUris.withAppendedId(uri, id)
-        context!!.contentResolver.notifyChange(resultUri, null)
+        context?.contentResolver?.notifyChange(resultUri, null)
         return resultUri
     }
 
-    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
+    override fun delete(
+        /** uri */ uri: Uri, 
+        /** filter */ selection: String?, 
+        /** args */ selectionArgs: Array<String>?,
+    ): Int {
         val db = getDatabase().openHelper.writableDatabase
         val match = uriMatcher.match(uri)
         val (table, id) = parseMatch(match, uri)
@@ -102,17 +124,17 @@ class ClinicLedgerProvider : ContentProvider() {
         val finalArgs = buildArgs(id, selectionArgs)
 
         val deleted = db.delete(table, finalSelection, finalArgs)
-        if (deleted > 0) context!!.contentResolver.notifyChange(uri, null)
+        if (deleted > 0) context?.contentResolver?.notifyChange(uri, null)
         return deleted
     }
 
     override fun update(
-        uri: Uri,
-        values: ContentValues?,
-        selection: String?,
-        selectionArgs: Array<String>?
+        /** uri */ uri: Uri,
+        /** values */ values: ContentValues?,
+        /** filter */ selection: String?,
+        /** args */ selectionArgs: Array<String>?,
     ): Int {
-        if (values == null) return 0
+        val data = values ?: return 0
         val db = getDatabase().openHelper.writableDatabase
         val match = uriMatcher.match(uri)
         val (table, id) = parseMatch(match, uri)
@@ -120,8 +142,8 @@ class ClinicLedgerProvider : ContentProvider() {
         val finalSelection = buildSelection(id, selection)
         val finalArgs = buildArgs(id, selectionArgs)
 
-        val updated = db.update(table, SQLiteDatabase.CONFLICT_REPLACE, values, finalSelection, finalArgs)
-        if (updated > 0) context!!.contentResolver.notifyChange(uri, null)
+        val updated = db.update(table, SQLiteDatabase.CONFLICT_REPLACE, data, finalSelection, finalArgs)
+        if (updated > 0) context?.contentResolver?.notifyChange(uri, null)
         return updated
     }
 
@@ -153,6 +175,6 @@ class ClinicLedgerProvider : ContentProvider() {
     private fun buildArgs(id: Long?, selectionArgs: Array<String>?): Array<String>? {
         if (id == null) return selectionArgs
         val idArg = id.toString()
-        return if (selectionArgs == null) arrayOf(idArg) else arrayOf(idArg, *selectionArgs)
+        return selectionArgs?.let { arrayOf(idArg, *it) } ?: arrayOf(idArg)
     }
 }

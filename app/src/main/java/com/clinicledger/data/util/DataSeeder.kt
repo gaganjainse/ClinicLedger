@@ -16,15 +16,15 @@ import java.util.Random
 
 /**
  * Utility to populate the database with realistic demo data.
- * Useful for development, testing, and showcasing the app's capabilities.
+ * Includes big spenders, edge cases, and diverse family structures.
  */
 object DataSeeder {
     private const val TAG = "DataSeeder"
 
     /**
-     * Seeds the database only if no patients exist, to avoid accidental overwrites of live data.
+     * Seeds the database with default villages and sample patient data if empty.
      */
-    suspend fun seedDatabaseIfNeeded(context: Context) {
+    suspend fun seedDatabaseIfNeeded(/** App context */ context: Context) {
         val database = ClinicLedgerDatabase.getDatabase(context)
         val patientDao = database.patientDao()
         val existingPatientsCount = patientDao.getAllPatientsSync().size
@@ -53,7 +53,10 @@ object DataSeeder {
                     Pair("Piplya", "पीपल्या"),
                 )
                 for (v in seedVillages) {
-                    db.execSQL("INSERT OR IGNORE INTO villages (name, name_hindi) VALUES ('${v.first}', '${v.second}')")
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO villages (name, name_hindi) VALUES " +
+                            "('${v.first}', '${v.second}')",
+                    )
                 }
                 villages = villageDao.getAllVillagesSync()
             } catch (e: Exception) {
@@ -61,158 +64,230 @@ object DataSeeder {
             }
         }
 
-        if (villages.isEmpty()) {
-            Log.e(TAG, "No villages found. Cannot seed data.")
-            return
-        }
+        if (villages.isEmpty()) return
 
-        val random = Random(42) // Fixed seed for reproducible data
+        val random = Random(1234)
 
-        // Predefined structured families representing multi-generational rural households
         val seedFamilies = listOf(
             SeedFamily(
-                nameEng = "Sitaram Sharma's Family",
-                nameHin = "सीताराम शर्मा का परिवार",
-                headNameEng = "Sitaram Sharma",
-                headNameHin = "सीताराम शर्मा",
-                casteEng = "Sharma",
-                casteHin = "शर्मा",
+                nameEng = "The High-Value Sharma Household",
+                nameHin = "शर्मा जी का संपन्न परिवार",
+                headNameEng = "Pandit Ram Narayan Sharma",
+                headNameHin = "पंडित राम नारायण शर्मा",
+                casteEng = "Brahmin",
+                casteHin = "ब्राह्मण",
                 villageName = "Siras",
                 members = listOf(
-                    SeedMember("Sitaram Sharma", "सीताराम शर्मा", "Grandfather", "दादाजी", isMale = true, alias = "Sitaram"),
-                    SeedMember("Saraswati Sharma", "सरस्वती शर्मा", "Grandmother", "दादीजी", isMale = false),
-                    SeedMember("Ramesh Sharma", "रमेश शर्मा", "Father", "पिताजी", isMale = true, alias = "Ramesh"),
-                    SeedMember("Sunita Sharma", "सुनीता शर्मा", "Mother", "माताजी", isMale = false),
-                    SeedMember("Sunil Sharma", "सुनील शर्मा", "Son", "पुत्र", isMale = true, alias = "Sunil"),
-                    SeedMember("Aarav Sharma", "आरव शर्मा", "Grandson", "पोता", isMale = true, alias = "Aarav"),
+                    SeedMember(
+                        "Ram Narayan Sharma", "राम नारायण शर्मा", 
+                        "Head of Household", "घर का मुखिया", isMale = true, isBigSpender = true,
+                    ),
+                    SeedMember("Laxmi Devi", "लक्ष्मी देवी", "Spouse", "जीवनसाथी", isMale = false),
+                    SeedMember(
+                        "Rajesh Sharma", "राजेश शर्मा", 
+                        "Family Member", "परिवार का सदस्य", isMale = true, alias = "Rajju",
+                    ),
+                    SeedMember(
+                        "Priya Sharma", "प्रिया शर्मा", 
+                        "Family Member", "परिवार का सदस्य", isMale = false,
+                    ),
+                    SeedMember("Ankit Sharma", "अंकित शर्मा", "Dependent", "आश्रित", isMale = true),
+                    SeedMember("Sneha Sharma", "स्नेहा शर्मा", "Dependent", "आश्रित", isMale = false),
                 ),
             ),
             SeedFamily(
-                nameEng = "Ramprasad Meena's Family",
-                nameHin = "रामप्रसाद मीना का परिवार",
-                headNameEng = "Ramprasad Meena",
-                headNameHin = "रामप्रसाद मीना",
+                nameEng = "Meena Agricultural Family",
+                nameHin = "मीणा कृषक परिवार",
+                headNameEng = "Harphool Meena",
+                headNameHin = "हरफूल मीणा",
                 casteEng = "Meena",
-                casteHin = "मीना",
+                casteHin = "मीणा",
                 villageName = "Mehtabpura",
                 members = listOf(
-                    SeedMember("Ramprasad Meena", "रामप्रसाद मीना", "Grandfather", "दादाजी", isMale = true),
-                    SeedMember("Dhanni Meena", "धन्नी मीना", "Grandmother", "दादीजी", isMale = false),
-                    SeedMember("Kalu Meena", "कालू मीना", "Father", "पिताजी", isMale = true, alias = "Kalu"),
-                    SeedMember("Meera Meena", "मीरा मीना", "Mother", "माताजी", isMale = false),
-                    SeedMember("Chotu Meena", "छोटू मीना", "Son", "पुत्र", isMale = true, alias = "Chhotu"),
-                )
-            )
+                    SeedMember(
+                        "Harphool Meena", "हरफूल मीणा", 
+                        "Head of Household", "घर का मुखिया", isMale = true,
+                    ),
+                    SeedMember("Badami Devi", "बादामी देवी", "Spouse", "जीवनसाथी", isMale = false),
+                    SeedMember(
+                        "Kailash Meena", "कैलाश मीणा", 
+                        "Family Member", "परिवार का सदस्य", isMale = true, alias = "Kailu",
+                    ),
+                    SeedMember(
+                        "Savitri Devi", "सावित्री देवी", 
+                        "Family Member", "परिवार का सदस्य", isMale = false,
+                    ),
+                    SeedMember("Golu Meena", "गोलू मीणा", "Dependent", "आश्रित", isMale = true),
+                ),
+            ),
+            SeedFamily(
+                nameEng = "The Merchant's Record",
+                nameHin = "सेठ जी का खाता",
+                headNameEng = "Ghanshyam Das Gupta",
+                headNameHin = "घनश्याम दास गुप्ता",
+                casteEng = "Baniya",
+                casteHin = "बनिया",
+                villageName = "Jhilai",
+                members = listOf(
+                    SeedMember(
+                        "Ghanshyam Das Gupta", "घनश्याम दास गुप्ता", 
+                        "Head of Household", "घर का मुखिया", isMale = true, isBigSpender = true,
+                    ),
+                    SeedMember("Shanti Devi", "शान्ति देवी", "Spouse", "जीवनसाथी", isMale = false),
+                ),
+            ),
         )
 
         val medNotes = listOf(
-            "Paracetamol + Cough Syrup", "Amoxicillin course", "BP medicines (1 month)",
-            "Calcium + Vitamin D", "Antacid + Painkillers", "Ointment for skin rash"
+            "Full Body Checkup", "Chronic Diabetic Medicines", "Emergency IV Fluid",
+            "Post-Surgical Dressing", "Arthritis Pain Management", "Pediatric Vaccination",
+            "Maternity Consultation", "Severe Viral Fever Treatment", "Cardio Monitoring Fee",
         )
 
-        // Insert families and their members
         for (fam in seedFamilies) {
-            val village = villages.firstOrNull { it.name.equals(fam.villageName, ignoreCase = true) } ?: villages[0]
+            val village = villages.firstOrNull { 
+                it.name.equals(fam.villageName, ignoreCase = true) 
+            } ?: villages[0]
+            
             val fgId = repository.insertFamilyGroup(
                 FamilyGroup(
                     name = "${fam.nameEng} / ${fam.nameHin}",
                     caste = "${fam.casteEng} / ${fam.casteHin}",
                     familyHeadName = "${fam.headNameEng} / ${fam.headNameHin}",
                     villageId = village.id,
-                )
+                ),
             )
 
             for (m in fam.members) {
-                val phone = "9" + String.format(java.util.Locale.US, "%09d", random.nextInt(1000000000))
-                val pastDate = getRandomDateInPast(random, 60)
+                val phone = "9" + String.format(
+                    java.util.Locale.US, "%09d", 
+                    random.nextInt(1000000000),
+                )
+                val pastDate = getRandomDateInPast(random, if (m.isBigSpender) 180 else 60)
                 
-                val pId = patientDao.insertPatient(Patient(
-                    name = "${m.nameEng} / ${m.nameHin}",
-                    villageId = village.id,
-                    phone = phone,
-                    familyGroupId = fgId,
-                    relationship = "${m.relationshipEng} / ${m.relationshipHin}",
-                    createdAt = pastDate,
-                    updatedAt = pastDate
-                ))
+                val pId = patientDao.insertPatient(
+                    Patient(
+                        name = "${m.nameEng} / ${m.nameHin}",
+                        villageId = village.id,
+                        phone = if (random.nextDouble() < 0.9) phone else "",
+                        familyGroupId = fgId,
+                        relationship = "${m.relationshipEng} / ${m.relationshipHin}",
+                        createdAt = pastDate,
+                        updatedAt = pastDate,
+                    ),
+                )
 
                 if (!m.alias.isNullOrBlank()) {
                     repository.insertAlias(Alias(patientId = pId, alias = m.alias))
                 }
-
-                // Seed Knowledge Graph for relationships
-                seedKnowledgeForMember(database, pId, m)
-
-                // Add randomized history for each member
-                createRandomTransactions(context, pId, random, medNotes)
+                
+                createRealisticHistory(context, pId, random, medNotes, m.isBigSpender)
             }
         }
 
-        Log.d(TAG, "Demo seeding completed successfully.")
+        // Add 10 individual patients across different villages
+        val individuals = listOf(
+            Pair("Vikram Singh", "विक्रम सिंह"), Pair("Anita Bai", "अनीता बाई"),
+            Pair("Sohan Lal", "सोहन लाल"), Pair("Gopal Das", "गोपाल दास"),
+            Pair("Meera Kanwar", "मीरा कंवर"), Pair("Bheru Singh", "भेरु सिंह"),
+            Pair("Suman Devi", "सुमन देवी"), Pair("Radhe Shyam", "राधे श्याम"),
+            Pair("Durga Prasad", "दुर्गा प्रसाद"), Pair("Kamla Bai", "कमला बाई"),
+        )
+
+        for (ind in individuals) {
+            val village = villages[random.nextInt(villages.size)]
+            val pId = patientDao.insertPatient(
+                Patient(
+                    name = "${ind.first} / ${ind.second}",
+                    villageId = village.id,
+                    relationship = "Self / स्वयं",
+                    createdAt = getRandomDateInPast(random, 45),
+                    updatedAt = Date(),
+                ),
+            )
+            createRealisticHistory(context, pId, random, medNotes, random.nextDouble() < 0.2)
+        }
+
+        Log.d(TAG, "Realistic demo seeding completed successfully.")
     }
 
-    private suspend fun seedKnowledgeForMember(db: ClinicLedgerDatabase, patientId: Long, m: SeedMember) {
-        val dao = db.clinicKnowledgeDao()
-        val relations = when(m.relationshipEng) {
-            "Wife" -> listOf("Wife", "Patni", "Gharwali")
-            "Father" -> listOf("Father", "Pitaji", "Papa")
-            "Son" -> listOf("Son", "Beta", "Larka")
-            "Daughter" -> listOf("Daughter", "Beti", "Larki")
-            else -> emptyList()
-        }
-        
-        for (rel in relations) {
-            dao.insertKnowledge(com.clinicledger.data.models.ClinicKnowledge(
-                subjectId = patientId,
-                relationType = rel,
-                objectName = m.nameEng
-            ))
-        }
-    }
-
-    /**
-     * Generates a sequence of related transactions for a patient.
-     */
-    private suspend fun createRandomTransactions(
+    private suspend fun createRealisticHistory(
         context: Context,
         patientId: Long,
         random: Random,
-        medNotes: List<String>
+        medNotes: List<String>,
+        isBigSpender: Boolean,
     ) {
         val transactionRepository = TransactionRepository(context)
-        val numTransactions = random.nextInt(6) + 1 
-        var runningBalance = 0.0
+        val numTransactions = if (isBigSpender) random.nextInt(10) + 5 else random.nextInt(5) + 1 
+        var runningBalance = 0L
 
         repeat(numTransactions) {
-            val transactionDate = getRandomDateInPast(random, 60)
-            val type = if (random.nextDouble() < 0.6) "medicine" else "payment"
-            val amount = (random.nextInt(10) + 1) * 100.0
+            val transactionDate = getRandomDateInPast(random, 90)
+            val type = if (runningBalance <= 0L || random.nextDouble() < 0.7) {
+                "medicine"
+            } else {
+                "payment"
+            }
+            
+            val baseAmount = if (isBigSpender) {
+                (random.nextInt(40) + 10) * 100L
+            } else {
+                (random.nextInt(10) + 1) * 100L
+            }
+            
+            val amount = if (type == "payment") {
+                val payLimit = (runningBalance / 100).toInt().coerceAtLeast(1)
+                val pay = (random.nextInt(payLimit) + 1) * 100L
+                pay.coerceAtMost(runningBalance)
+            } else {
+                baseAmount
+            }
 
-            transactionRepository.insertTransaction(Transaction(
-                patientId = patientId,
-                type = type,
-                amount = amount,
-                notes = if (type == "medicine") medNotes[random.nextInt(medNotes.size)] else "Cash received",
-                createdAt = transactionDate,
-                updatedAt = transactionDate
-            ))
-            runningBalance += if (type == "medicine") amount else -amount
+            if (amount > 0L) {
+                transactionRepository.insertTransaction(
+                    Transaction(
+                        patientId = patientId,
+                        type = type,
+                        amount = amount,
+                        notes = if (type == "medicine") {
+                            medNotes[random.nextInt(medNotes.size)]
+                        } else {
+                            "Payment received"
+                        },
+                        createdAt = transactionDate,
+                        updatedAt = transactionDate,
+                    ),
+                )
+                runningBalance += if (type == "medicine") amount else -amount
+            }
         }
     }
 
     private fun getRandomDateInPast(random: Random, maxDaysAgo: Int): Date {
         val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, -random.nextInt(maxDaysAgo))
+        calendar.add(Calendar.DAY_OF_YEAR, -random.nextInt(maxDaysAgo.coerceAtLeast(1)))
         return calendar.time
     }
 
-    private data class SeedFamily(val nameEng: String, val nameHin: String, val headNameEng: String, val headNameHin: String, val casteEng: String, val casteHin: String, val villageName: String, val members: List<SeedMember>)
-    private data class SeedMember(val nameEng: String, val nameHin: String, val relationshipEng: String, val relationshipHin: String, val isMale: Boolean, val alias: String? = null)
+    private data class SeedFamily(
+        val nameEng: String, val nameHin: String, 
+        val headNameEng: String, val headNameHin: String, 
+        val casteEng: String, val casteHin: String, 
+        val villageName: String, val members: List<SeedMember>,
+    )
+    
+    private data class SeedMember(
+        val nameEng: String, val nameHin: String, 
+        val relationshipEng: String, val relationshipHin: String, 
+        val isMale: Boolean, val alias: String? = null, 
+        val isBigSpender: Boolean = false,
+    )
 
     /**
-     * Completely wipes the database and re-seeds it. Use for maintenance.
+     * Wipes all operational clinical data from the system.
      */
-    suspend fun clearAllData(context: Context) {
+    suspend fun clearAllData(/** App context */ context: Context) {
         val database = ClinicLedgerDatabase.getDatabase(context)
         database.withTransaction {
             database.transactionDao().deleteAll()
@@ -221,24 +296,25 @@ object DataSeeder {
             database.familyGroupDao().deleteAll()
             database.villageDao().deleteAll()
         }
-        // Re-insert default villages with Hindi names
         val seedVillages = listOf(
-            Pair("Siras", "सिरस"),
-            Pair("Mehtabpura", "मेहताबपुरा"),
-            Pair("Jhilai", "झिलाई"),
-            Pair("Bassi", "बस्सी"),
-            Pair("Shyosinghpura", "श्योसिंहपुरा"),
-            Pair("Mandaliya", "मंडालिया"),
-            Pair("Nala", "नला"),
-            Pair("Piplya", "पीपल्या")
+            Pair("Siras", "सिरस"), Pair("Mehtabpura", "मेहताबपुरा"),
+            Pair("Jhilai", "झिलाई"), Pair("Bassi", "बस्सी"),
+            Pair("Shyosinghpura", "श्योसिंहपुरा"), Pair("Mandaliya", "मंडालिया"),
+            Pair("Nala", "नला"), Pair("Piplya", "पीपल्या"),
         )
         val db = database.openHelper.writableDatabase
         for (v in seedVillages) {
-            db.execSQL("INSERT OR IGNORE INTO villages (name, name_hindi) VALUES ('${v.first}', '${v.second}')")
+            db.execSQL(
+                "INSERT OR IGNORE INTO villages (name, name_hindi) VALUES " +
+                    "('${v.first}', '${v.second}')",
+            )
         }
     }
 
-    suspend fun seedDemoDataForce(context: Context) {
+    /**
+     * Forcefully re-seeds the database after a wipe.
+     */
+    suspend fun seedDemoDataForce(/** App context */ context: Context) {
         clearAllData(context)
         seedDatabaseIfNeeded(context)
     }

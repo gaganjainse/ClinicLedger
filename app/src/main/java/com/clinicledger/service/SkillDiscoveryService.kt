@@ -2,41 +2,37 @@ package com.clinicledger.service
 
 import com.clinicledger.data.local.LearnedSkillDao
 import com.clinicledger.data.models.LearnedSkill
-import java.util.*
+import java.util.Date
 
 /**
- * Service to manage the Agent's learning loop.
+ * Service to manage dynamically learned STT trigger mappings.
  */
-class SkillDiscoveryService(private val learnedSkillDao: LearnedSkillDao) {
+class SkillDiscoveryService(/** storage */ private val learnedSkillDao: LearnedSkillDao) {
 
     /**
-     * Records a new skill or reinforces an existing one.
+     * Persists a new trigger mapping.
      */
-    suspend fun acquireSkill(phrase: String, toolId: String) {
-        val existing = learnedSkillDao.getSkillByPhrase(phrase)
-        if (existing != null) {
-            learnedSkillDao.updateSkill(
-                existing.copy(
-                    useCount = existing.useCount + 1,
-                    lastUsedAt = Date(),
-                )
-            )
-        } else {
-            learnedSkillDao.insertSkill(
-                LearnedSkill(
-                    triggerPhrase = phrase,
-                    toolId = toolId,
-                    confidence = 1.0f,
-                )
-            )
-        }
+    suspend fun acquireSkill(/** text */ phrase: String, /** ID */ toolId: String) {
+        learnedSkillDao.insertSkill(
+            LearnedSkill(
+                triggerPhrase = phrase,
+                toolId = toolId,
+                confidence = 1.0f,
+                useCount = 1,
+                lastUsedAt = Date(),
+            ),
+        )
     }
 
     /**
-     * Looks up a tool ID for a given phrase.
+     * Looks up a custom tool for the given phrase.
      */
-    suspend fun lookupLearnedTool(phrase: String): String? {
+    suspend fun lookupLearnedTool(/** text */ phrase: String): String? {
         val skill = learnedSkillDao.getSkillByPhrase(phrase)
-        return if (skill != null && skill.confidence > 0.6f) skill.toolId else null
+        return if ((skill != null) && (skill.confidence > 0.6f)) {
+            skill.toolId 
+        } else {
+            null
+        }
     }
 }

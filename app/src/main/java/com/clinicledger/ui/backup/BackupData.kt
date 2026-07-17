@@ -5,20 +5,34 @@ import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-/** Data transfer object used by BackupActivity for JSON serialization of
- * the entire database. Contains version and export timestamp metadata
- * alongside the full lists of all four entity types. */
+/** 
+ * Data transfer object used for JSON serialization of the entire database.
+ */
 data class BackupData(
+    /** Schema version */
     val version: Int = CURRENT_VERSION,
-    val exportedAt: String = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date()),
+    /** formatted timestamp */
+    val exportedAt: String = SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'", 
+        Locale.US,
+    ).format(Date()),
+    /** data set */
     val villages: List<Village>,
+    /** data set */
     val patients: List<Patient>,
+    /** data set */
     val aliases: List<Alias>,
+    /** data set */
     val transactions: List<Transaction>,
-    val familyGroups: List<FamilyGroup>? = emptyList()
+    /** data set */
+    val familyGroups: List<FamilyGroup>? = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 1
+        /** current export schema */
+        const val CURRENT_VERSION: Int = 1
     }
 }

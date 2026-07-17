@@ -1,152 +1,181 @@
 package com.clinicledger.ui.compose.components
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.clinicledger.R
 import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
-import com.clinicledger.ui.util.DateTimeUtils
 import com.clinicledger.ui.util.LocaleManager
-import java.util.Calendar
+import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
+import java.util.*
 
+/**
+ * Diagnostic and summary card for the start of the day.
+ */
 @Composable
 fun MorningBriefSection(
+    /** Data set */
     allPatients: List<Patient>,
+    /** Data set */
     familyGroups: List<FamilyGroup>,
-    totalCollectedToday: Double
+    /** recovery total */
+    totalCollectedToday: Long,
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(value = false) }
+    val isHindi = LocalIsHindi.current
 
-    val totalOutstanding = allPatients.sumOf { it.currentBalance }
-    val unlinkedPatientsCount = allPatients.count { it.familyGroupId == null }
+    val calendar = Calendar.getInstance()
+    val dayEng = calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.US)
+    val dayHindi = when (calendar.get(Calendar.DAY_OF_WEEK)) {
+        Calendar.SUNDAY -> stringResource(R.string.day_sunday)
+        Calendar.MONDAY -> stringResource(R.string.day_monday)
+        Calendar.TUESDAY -> stringResource(R.string.day_tuesday)
+        Calendar.WEDNESDAY -> stringResource(R.string.day_wednesday)
+        Calendar.THURSDAY -> stringResource(R.string.day_thursday)
+        Calendar.FRIDAY -> stringResource(R.string.day_friday)
+        else -> stringResource(R.string.day_saturday)
+    }
+
+    val totalOutstanding = allPatients.asSequence()
+        .filter { it.currentBalance > 0 }
+        .sumOf { it.currentBalance }
     val activeFamiliesCount = familyGroups.size
     val highestDuePatient = allPatients.maxByOrNull { it.currentBalance }
-    
-    val dayHindi = DateTimeUtils.getLocalizedDayOfWeek(Calendar.getInstance().time, isHindi = true)
+    val unlinkedPatientsCount = allPatients.count { it.familyGroupId == null }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)
-        )
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiary),
-                        contentAlignment = Alignment.Center
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                        modifier = Modifier.size(40.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.LightMode,
-                            contentDescription = "Morning Brief",
-                            tint = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.LightMode, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
                     }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "प्रणाम डॉक्टर साहब! / Welcome Doctor!",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = stringResource(R.string.welcome_doctor_msg),
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "आज $dayHindi की सुर्खियां / Today's Snapshots",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = stringResource(
+                                R.string.today_snapshots_msg, 
+                                if (isHindi) dayHindi else (dayEng ?: ""),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
-                
                 IconButton(onClick = { isExpanded = !isExpanded }) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        contentDescription = "Toggle Brief",
-                        tint = MaterialTheme.colorScheme.tertiary
+                        imageVector = if (isExpanded) {
+                            Icons.Rounded.ExpandLess
+                        } else {
+                            Icons.Rounded.ExpandMore
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
 
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-
-                    BriefInsightRow(
-                        icon = Icons.Rounded.MonetizationOn,
-                        label = "आज की कुल रिकवरी / Recovery Today",
-                        value = "${LocaleManager.formatCurrency(totalCollectedToday)} जमा प्राप्त"
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.1f))
+                    
+                    BriefItem(
+                        icon = Icons.Rounded.CurrencyRupee,
+                        label = stringResource(R.string.recovery_today_title),
+                        value = stringResource(
+                            R.string.recovery_today_val, 
+                            LocaleManager.formatCurrency(totalCollectedToday),
+                        ),
                     )
 
-                    BriefInsightRow(
-                        icon = Icons.Rounded.Groups,
-                        label = "कुल बकाया नेटवर्क / Outstanding Ledger",
-                        value = "${LocaleManager.formatCurrency(totalOutstanding)} बकाया ($activeFamiliesCount सक्रिय परिवार)"
+                    BriefItem(
+                        icon = Icons.Rounded.AccountBalance,
+                        label = stringResource(R.string.outstanding_ledger_title),
+                        value = stringResource(
+                            R.string.outstanding_ledger_val, 
+                            LocaleManager.formatCurrency(totalOutstanding), 
+                            activeFamiliesCount,
+                        ),
                     )
 
-                    if (highestDuePatient != null && highestDuePatient.currentBalance > 0) {
-                        BriefInsightRow(
-                            icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                            label = "अधिकतम बकाया मरीज / Highest Pending Patient",
-                            value = "${LocaleManager.formatPatientName(highestDuePatient.name)} (${LocaleManager.formatCurrency(highestDuePatient.currentBalance)})",
-                            isError = true
+                    if ((highestDuePatient != null) && (highestDuePatient.currentBalance > 0)) {
+                        BriefItem(
+                            icon = Icons.Rounded.Error,
+                            label = stringResource(R.string.highest_pending_title),
+                            value = "${highestDuePatient.name} " +
+                                "(${LocaleManager.formatCurrency(highestDuePatient.currentBalance)})",
+                            isError = true,
                         )
                     }
 
                     if (unlinkedPatientsCount > 0) {
-                        BriefInsightRow(
-                            icon = Icons.Rounded.FamilyRestroom,
-                            label = "बिना परिवार के मरीज / Unlinked Clinic Memories",
-                            value = "$unlinkedPatientsCount मरीजों को परिवार से जोड़ना बाकी है।"
+                        BriefItem(
+                            icon = Icons.Rounded.LinkOff,
+                            label = stringResource(R.string.unlinked_memories_title),
+                            value = stringResource(
+                                R.string.unlinked_warning_format, 
+                                unlinkedPatientsCount,
+                            ),
                         )
                     }
                 }
             }
 
             if (!isExpanded) {
-                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "टैप करें और आज की क्लिनिक मेमोरी का विवरण देखें।",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    text = stringResource(R.string.tap_expand_msg),
+                    modifier = Modifier.padding(top = 8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.6f),
                 )
             }
         }
@@ -154,33 +183,42 @@ fun MorningBriefSection(
 }
 
 @Composable
-private fun BriefInsightRow(
+private fun BriefItem(
+    /** Icon */
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    /** label text */
     label: String,
+    /** val text */
     value: String,
-    isError: Boolean = false
+    /** error color flag */
+    isError: Boolean = false,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
+            imageVector = icon, 
+            contentDescription = null, 
+            modifier = Modifier.size(16.dp),
+            tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
         )
+        Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                label, 
+                style = MaterialTheme.typography.labelSmall, 
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
             )
             Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
+                value, 
+                style = MaterialTheme.typography.bodySmall, 
                 fontWeight = FontWeight.Bold,
-                color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                color = if (isError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onTertiaryContainer
+                },
             )
         }
     }

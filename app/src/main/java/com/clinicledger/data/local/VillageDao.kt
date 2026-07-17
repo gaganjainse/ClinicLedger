@@ -1,39 +1,36 @@
 package com.clinicledger.data.local
 
 import androidx.lifecycle.LiveData
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.clinicledger.data.models.Village
 
 /**
  * Room DAO for the villages table.
- * Villages are referenced by patients and used for grouping/filtering.
  */
 @Dao
 interface VillageDao {
 
-    /** Inserts a village, replacing on conflict. Returns the generated row ID. */
+    /** Inserts a village record. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertVillage(village: Village): Long
+    suspend fun insertVillage(/** model */ village: Village): Long
 
+    /** Updates a village record. */
     @Update
-    suspend fun updateVillage(village: Village)
+    suspend fun updateVillage(/** model */ village: Village)
 
+    /** Deletes a village record. */
     @Delete
-    suspend fun deleteVillage(village: Village)
+    suspend fun deleteVillage(/** model */ village: Village)
 
-    /** Returns all villages sorted alphabetically */
+    /** Returns all villages sorted alphabetically. */
     @Query("SELECT * FROM villages ORDER BY name ASC")
     fun getAllVillages(): LiveData<List<Village>>
 
-    /** Non-observable variant of getAllVillages for use in coroutine contexts */
+    /** Returns all villages sorted alphabetically (Sync). */
     @Query("SELECT * FROM villages ORDER BY name ASC")
     suspend fun getAllVillagesSync(): List<Village>
 
+    /** Wipes the entire villages table. */
     @Query("DELETE FROM villages")
     suspend fun deleteAll()
 }

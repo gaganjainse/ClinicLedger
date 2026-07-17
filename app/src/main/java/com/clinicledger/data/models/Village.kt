@@ -1,35 +1,38 @@
 package com.clinicledger.data.models
 
-import androidx.compose.runtime.Immutable
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.Ignore
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room.*
 import java.util.Date
 
 /**
- * Room entity representing a village that patients belong to.
+ * Data entity representing a village community.
  */
 @Entity(
-    tableName = "villages",
-    indices = [Index("name", unique = true)]
+    tableName = Village.TABLE_NAME,
+    indices = [Index("name", unique = true)],
 )
-@Immutable
 data class Village(
+    /** Unique ID */
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    /** English name */
     @ColumnInfo(name = "name")
     val name: String,
 
+    /** Hindi name */
     @ColumnInfo(name = "name_hindi", defaultValue = "")
     val nameHindi: String = "",
 
+    /** Persistence timestamp */
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    val createdAt: Date = Date()
+    val createdAt: Date = Date(),
 ) {
-    // Populated at query time; not persisted in the villages table
+    /** List of patients in this village (Non-DB field) */
     @Ignore
     var patients: List<Patient> = emptyList()
+
+    companion object {
+        /** Database table name */
+        const val TABLE_NAME = "villages"
+    }
 }

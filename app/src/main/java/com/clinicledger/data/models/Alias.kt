@@ -1,45 +1,45 @@
 package com.clinicledger.data.models
 
-import androidx.compose.runtime.Immutable
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Ignore
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room.*
 import java.util.Date
 
 /**
- * Room entity representing an alternate name (alias) for a patient.
+ * Data entity for secondary identification names (e.g. Nicknames).
  */
 @Entity(
-    tableName = "aliases",
+    tableName = Alias.TABLE_NAME,
     foreignKeys = [
         ForeignKey(
             entity = Patient::class,
             parentColumns = ["id"],
             childColumns = ["patient_id"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("patient_id")]
 )
-@Immutable
 data class Alias(
+    /** Unique ID */
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    /** Linked patient ID */
     @ColumnInfo(name = "patient_id")
     val patientId: Long,
 
-    // The alternate name or nickname for the patient
+    /** Nickname or variant */
     @ColumnInfo(name = "alias")
     val alias: String,
 
+    /** Persistence timestamp */
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
-    val createdAt: Date = Date()
+    val createdAt: Date = Date(),
 ) {
-    // Populated at query time; not persisted in the aliases table
+    /** Resolved patient object (Non-DB field) */
     @Ignore
     var patient: Patient? = null
+
+    companion object {
+        /** Database table name */
+        const val TABLE_NAME = "aliases"
+    }
 }

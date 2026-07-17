@@ -1,40 +1,47 @@
 package com.clinicledger.data.local
 
 import androidx.lifecycle.LiveData
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.clinicledger.data.models.FamilyGroup
 
+/**
+ * Room DAO for family group management.
+ */
 @Dao
 interface FamilyGroupDao {
+    /** Inserts a family group record. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFamilyGroup(familyGroup: FamilyGroup): Long
+    suspend fun insertFamilyGroup(/** model */ familyGroup: FamilyGroup): Long
 
+    /** Updates family group metadata. */
     @Update
-    suspend fun updateFamilyGroup(familyGroup: FamilyGroup)
+    suspend fun updateFamilyGroup(/** model */ familyGroup: FamilyGroup)
 
+    /** Deletes a family group record. */
     @Delete
-    suspend fun deleteFamilyGroup(familyGroup: FamilyGroup)
+    suspend fun deleteFamilyGroup(/** model */ familyGroup: FamilyGroup)
 
+    /** Returns all family groups alphabetically. */
     @Query("SELECT * FROM family_groups ORDER BY name ASC")
     fun getAllFamilyGroups(): LiveData<List<FamilyGroup>>
 
+    /** Returns all family groups alphabetically (Sync). */
     @Query("SELECT * FROM family_groups ORDER BY name ASC")
     suspend fun getAllFamilyGroupsSync(): List<FamilyGroup>
 
+    /** Resolves a specific family group by ID. */
     @Query("SELECT * FROM family_groups WHERE id = :familyGroupId")
-    suspend fun getFamilyGroupById(familyGroupId: Long): FamilyGroup?
+    suspend fun getFamilyGroupById(/** target ID */ familyGroupId: Long): FamilyGroup?
 
+    /** Returns family groups belonging to a village. */
     @Query("SELECT * FROM family_groups WHERE village_id = :villageId ORDER BY name ASC")
-    fun getFamilyGroupsByVillage(villageId: Long): LiveData<List<FamilyGroup>>
+    fun getFamilyGroupsByVillage(/** target village */ villageId: Long): LiveData<List<FamilyGroup>>
 
+    /** Performs a name-based search for family groups. */
     @Query("SELECT * FROM family_groups WHERE name LIKE '%' || :searchQuery || '%' ORDER BY name ASC")
-    fun searchFamilyGroups(searchQuery: String): LiveData<List<FamilyGroup>>
+    fun searchFamilyGroups(/** query */ searchQuery: String): LiveData<List<FamilyGroup>>
 
+    /** Wipes the entire family_groups table. */
     @Query("DELETE FROM family_groups")
     suspend fun deleteAll()
 }

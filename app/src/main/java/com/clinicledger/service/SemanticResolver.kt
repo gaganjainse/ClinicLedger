@@ -13,9 +13,8 @@ class SemanticResolver(
 ) {
     /**
      * Attempts to find a Patient ID based on a relationship query.
-     * Example: "Sita ke husband"
      */
-    suspend fun resolvePatientFromRelationship(query: String): Long? {
+    suspend fun resolvePatientFromRelationship(/** text query */ query: String): Long? {
         val cleanQuery = query.lowercase().trim()
         
         // 1. Search knowledge graph for matching objects or relations

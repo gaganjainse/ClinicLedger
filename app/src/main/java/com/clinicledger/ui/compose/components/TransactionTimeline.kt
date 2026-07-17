@@ -5,152 +5,113 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.LocalPharmacy
-import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.clinicledger.R
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.ui.util.LocaleManager
-import com.clinicledger.ui.util.LocaleManager.LocalIsHindi
 
 /**
- * Displays an individual transaction in a vertical timeline.
- * Differentiates between medicine charges and payments with icons and colors.
+ * Visual timeline element representing a single clinical transaction.
  */
 @Composable
-fun TransactionTimelineItem(transaction: Transaction) {
-    val isHindi = LocalIsHindi.current
+fun TransactionTimelineItem(/** Transaction model */ transaction: Transaction) {
     val isPayment = transaction.type == "payment"
-    val accentColor = if (isPayment) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-    val icon = if (isPayment) Icons.Rounded.Payments else Icons.Rounded.LocalPharmacy
-    val prefix = if (isPayment) "-" else "+"
-
+    val accentColor = if (isPayment) {
+        MaterialTheme.colorScheme.primary 
+    } else {
+        MaterialTheme.colorScheme.error
+    }
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        // Timeline stem and dot
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Timeline Dot & Line
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(32.dp),
+        ) {
             Box(
                 modifier = Modifier
                     .size(12.dp)
                     .clip(CircleShape)
-                    .background(accentColor)
+                    .background(accentColor),
             )
             Box(
                 modifier = Modifier
                     .width(2.dp)
                     .height(60.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             )
         }
-
+        
         Spacer(modifier = Modifier.width(16.dp))
-
+        
+        // Content Card
         Card(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
-                }
-
+                val icon = if (isPayment) Icons.Rounded.Payments else Icons.Rounded.MedicalServices
+                Icon(
+                    imageVector = icon, 
+                    contentDescription = null, 
+                    tint = accentColor, 
+                    modifier = Modifier.size(20.dp),
+                )
+                
                 Spacer(modifier = Modifier.width(12.dp))
-
+                
                 Column(modifier = Modifier.weight(1f)) {
-                    val formattedDate = LocaleManager.formatDateTime(transaction.createdAt)
                     Text(
-                        text = LocaleManager.getLocalizedTransactionType(transaction.type, isHindi),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        text = if (isPayment) {
+                            stringResource(R.string.payment_received_label)
+                        } else {
+                            stringResource(R.string.medicine_given_label)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                     )
                     if (transaction.notes.isNotBlank()) {
                         Text(
                             text = transaction.notes,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    Text(
+                        text = LocaleManager.formatDateTime(transaction.createdAt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
                 }
-
+                
                 Text(
-                    text = "$prefix${LocaleManager.formatCurrency(kotlin.math.abs(transaction.amount))}",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = LocaleManager.formatCurrency(transaction.amount),
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Black,
-                    color = accentColor
+                    color = accentColor,
                 )
             }
-        }
-    }
-}
-
-/**
- * Header text for the transaction history section.
- */
-@Composable
-fun TransactionHistoryHeader() {
-    val isHindi = LocalIsHindi.current
-    Text(
-        text = if (isHindi) "लेनदेन का इतिहास" else "Transaction History",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-    )
-}
-
-/**
- * Placeholder view for when a patient has no transactions recorded.
- */
-@Composable
-fun EmptyTransactionsView(isHindi: Boolean) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier.padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outline)
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = if (isHindi) "अभी तक कोई लेनदेन नहीं हुआ है।" else "No transactions recorded yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }

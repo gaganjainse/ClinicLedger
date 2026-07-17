@@ -1,39 +1,35 @@
 package com.clinicledger.data.local
 
 import androidx.lifecycle.LiveData
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.clinicledger.data.models.Alias
 
 /**
- * Room DAO for the aliases table.
- * Aliases allow patients to be found by nicknames or alternate spellings.
+ * Room DAO for the patient aliases table.
  */
 @Dao
 interface AliasDao {
-
+    /** Inserts an alias record. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAlias(alias: Alias): Long
+    suspend fun insertAlias(/** model */ alias: Alias): Long
 
+    /** Deletes an alias record. */
     @Delete
-    suspend fun deleteAlias(alias: Alias)
+    suspend fun deleteAlias(/** model */ alias: Alias)
 
-    /** Non-observable variant of getAllAliases for coroutine contexts */
+    /** Returns all aliases in the system. */
     @Query("SELECT * FROM aliases ORDER BY alias ASC")
     suspend fun getAllAliasesSync(): List<Alias>
 
-    /** Returns all aliases belonging to a specific patient */
+    /** Returns aliases for a specific patient. */
     @Query("SELECT * FROM aliases WHERE patient_id = :patientId ORDER BY alias ASC")
-    fun getAliasesByPatient(patientId: Long): LiveData<List<Alias>>
+    fun getAliasesByPatient(/** target ID */ patientId: Long): LiveData<List<Alias>>
 
-    /** Removes all aliases for a given patient, used when replacing the alias list */
+    /** Removes all aliases for a specific patient. */
     @Query("DELETE FROM aliases WHERE patient_id = :patientId")
-    suspend fun deleteAliasesByPatient(patientId: Long)
+    suspend fun deleteAliasesForPatient(/** target ID */ patientId: Long)
 
+    /** Wipes the entire aliases table. */
     @Query("DELETE FROM aliases")
     suspend fun deleteAll()
 }

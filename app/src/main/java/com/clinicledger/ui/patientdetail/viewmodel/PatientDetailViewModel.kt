@@ -7,7 +7,6 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.clinicledger.data.models.Alias
-import com.clinicledger.data.models.FamilyGroup
 import com.clinicledger.data.models.Patient
 import com.clinicledger.data.models.Transaction
 import com.clinicledger.data.models.Village
@@ -21,29 +20,33 @@ import kotlinx.coroutines.launch
  * ViewModel for the Patient Detail screen.
  * Orchestrates data loading for a specific patient, their family, and their transactions.
  */
-class PatientDetailViewModel(application: Application) : AndroidViewModel(application) {
+class PatientDetailViewModel(/** App context */ application: Application) : AndroidViewModel(application) {
 
     private val repository = PatientRepository(application)
     private val transactionRepository = TransactionRepository(application)
     private val villageRepository = VillageRepository(application)
 
-    private val addTransactionUseCase = AddTransactionUseCase(transactionRepository)
+    private val addTransactionUseCase = AddTransactionUseCase(transactionRepository, repository)
 
     private val _patientId = MutableLiveData<Long>()
 
+    private val _familyGroupId = MutableLiveData<Long?>()
+
     /** The patient currently being viewed. */
-    val patient = MediatorLiveData<Patient?>().apply {
+    val patient: LiveData<Patient?> = MediatorLiveData<Patient?>().apply {
         var previousSource: LiveData<Patient?>? = null
         addSource(_patientId) { id ->
             previousSource?.let { removeSource(it) }
-            val newSource = if (id != null && id > 0) repository.getPatientById(id) else MutableLiveData<Patient?>(null)
+            val newSource = if (id != null && id > 0) {
+                repository.getPatientById(id)
+            } else {
+                MutableLiveData<Patient?>(null)
+            }
             previousSource = newSource
             addSource(newSource) { p ->
                 value = p
                 // Automatically update family group ID when patient is loaded
-                if (p != null) {
-                    _familyGroupId.value = p.familyGroupId
-                }
+                p?.let { _familyGroupId.value = it.familyGroupId }
             }
         }
     }
@@ -52,72 +55,60 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     val villages: LiveData<List<Village>> = villageRepository.getAllVillages()
 
     /** List of aliases associated with the current patient. */
-    val aliases = MediatorLiveData<List<Alias>>().apply {
+    val aliases: LiveData<List<Alias>> = MediatorLiveData<List<Alias>>().apply {
         var previousSource: LiveData<List<Alias>>? = null
         addSource(_patientId) { id ->
             previousSource?.let { removeSource(it) }
-            val newSource = if (id != null && id > 0) repository.getAliasesByPatient(id) else MutableLiveData<List<Alias>>(emptyList())
+            val newSource = if (id != null && id > 0) {
+                repository.getAliasesByPatient(id)
+            } else {
+                MutableLiveData(emptyList())
+            }
             previousSource = newSource
             addSource(newSource) { value = it }
         }
     }
 
     /** List of all transactions recorded for the current patient. */
-    val transactions = MediatorLiveData<List<Transaction>>().apply {
+    val transactions: LiveData<List<Transaction>> = MediatorLiveData<List<Transaction>>().apply {
         var previousSource: LiveData<List<Transaction>>? = null
         addSource(_patientId) { id ->
             previousSource?.let { removeSource(it) }
-            val newSource = if (id != null && id > 0) transactionRepository.getTransactionsByPatient(id) else MutableLiveData<List<Transaction>>(emptyList())
-            previousSource = newSource
-            addSource(newSource) { value = it }
-        }
-    }
-
-    private val _familyGroupId = MutableLiveData<Long?>()
-
-    /** The family group the patient belongs to, if any. */
-    val familyGroup = MediatorLiveData<FamilyGroup?>().apply {
-        var previousSource: LiveData<FamilyGroup?>? = null
-        addSource(_familyGroupId) { id ->
-            previousSource?.let { removeSource(it) }
             val newSource = if (id != null && id > 0) {
-                MutableLiveData<FamilyGroup?>().also { liveData ->
-                    viewModelScope.launch { liveData.value = repository.getFamilyGroupById(id) }
-                }
-            } else MutableLiveData<FamilyGroup?>(null)
+                transactionRepository.getTransactionsByPatient(id)
+            } else {
+                MutableLiveData(emptyList())
+            }
             previousSource = newSource
             addSource(newSource) { value = it }
         }
     }
 
     /** Other members belonging to the same family group. */
-    val familyMembers = MediatorLiveData<List<Patient>>().apply {
+    val familyMembers: LiveData<List<Patient>> = MediatorLiveData<List<Patient>>().apply {
         var previousSource: LiveData<List<Patient>>? = null
         addSource(_familyGroupId) { id ->
             previousSource?.let { removeSource(it) }
-            val newSource = if (id != null && id > 0) repository.getPatientsByFamilyGroup(id) else MutableLiveData<List<Patient>>(emptyList())
+            val newSource = if (id != null && id > 0) {
+                repository.getPatientsByFamilyGroup(id)
+            } else {
+                MutableLiveData(emptyList())
+            }
             previousSource = newSource
             addSource(newSource) { value = it }
         }
     }
 
-    /**
-     * Sets the family group ID to trigger loading of family details.
-     */
-    fun setFamilyGroupId(id: Long?) {
-        _familyGroupId.value = id
-    }
-
     private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> = _isLoading
-
-    private val _error = MutableLiveData<String?>()
+    
+    private val _error = MutableLiveData<String?>(null)
+    /** Observable error messages from operations */
     val error: LiveData<String?> = _error
 
     /**
      * Loads a patient's data into the ViewModel.
      */
-    fun loadPatient(patientId: Long) {
+    fun loadPatient(/** Patient ID */ patientId: Long) {
         _patientId.value = patientId
         _isLoading.value = true
     }
@@ -125,7 +116,7 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Updates the patient's profile details.
      */
-    fun updatePatient(patient: Patient) {
+    fun updatePatient(/** Updated model */ patient: Patient) {
         viewModelScope.launch {
             try {
                 repository.updatePatient(patient)
@@ -138,7 +129,7 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Adds a new alias for the patient.
      */
-    fun addAlias(patientId: Long, aliasName: String) {
+    fun addAlias(/** ID */ patientId: Long, /** Display alias */ aliasName: String) {
         viewModelScope.launch {
             try {
                 repository.insertAlias(Alias(patientId = patientId, alias = aliasName))
@@ -151,7 +142,7 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Removes an existing alias.
      */
-    fun deleteAlias(alias: Alias) {
+    fun deleteAlias(/** Existing model */ alias: Alias) {
         viewModelScope.launch {
             try {
                 repository.deleteAlias(alias)
@@ -164,13 +155,11 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Links the patient to an existing family group.
      */
-    fun linkFamilyGroup(patientId: Long, familyId: Long?) {
+    fun linkFamilyGroup(/** ID */ patientId: Long, /** Group ID */ familyId: Long?) {
         viewModelScope.launch {
             try {
                 val p = repository.getPatientByIdSync(patientId)
-                if (p != null) {
-                    repository.updatePatient(p.copy(familyGroupId = familyId))
-                }
+                p?.let { repository.updatePatient(it.copy(familyGroupId = familyId)) }
             } catch (e: Exception) {
                 _error.postValue(e.message ?: "Failed to link family group")
             }
@@ -178,15 +167,19 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     }
 
     /**
-     * Creates a new family group and links the patient to it.
+     * Updates the patient's profile photo.
      */
-    fun createAndLinkFamilyGroup(patientId: Long, name: String, villageId: Long) {
+    fun updatePhoto(patientId: Long, bitmap: android.graphics.Bitmap) {
         viewModelScope.launch {
             try {
-                val familyId = repository.insertFamilyGroup(FamilyGroup(name = name, villageId = villageId))
-                linkFamilyGroup(patientId, familyId)
+                val photoStorage = com.clinicledger.service.PhotoStorageService(getApplication())
+                val path = photoStorage.savePatientPhoto(bitmap)
+                val p = repository.getPatientByIdSync(patientId)
+                if (p != null && path != null) {
+                    repository.updatePatient(p.copy(photoPath = path))
+                }
             } catch (e: Exception) {
-                _error.postValue(e.message ?: "Failed to create and link family group")
+                _error.postValue(e.message ?: "Failed to update photo")
             }
         }
     }
@@ -194,10 +187,26 @@ class PatientDetailViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Adds a new transaction for the patient.
      */
-    fun addTransaction(patientId: Long, type: String, amount: Double, notes: String, date: java.util.Date) {
+    fun addTransaction(
+        /** Target patient */
+        patientId: Long, 
+        /** Type tag */
+        type: String, 
+        /** Amount in Paise */
+        amount: Long, 
+        /** Notes */
+        notes: String, 
+        /** Timestamp */
+        date: java.util.Date, 
+        /** Cross-family beneficiary */
+        beneficiaryId: Long? = null,
+    ) {
         viewModelScope.launch {
             try {
-                addTransactionUseCase(patientId, type, amount, notes, date)
+                addTransactionUseCase(
+                    patientId, type, amount, notes, date, 
+                    beneficiaryId, getApplication(),
+                )
             } catch (e: Exception) {
                 _error.postValue(e.message ?: "Failed to add transaction")
             }

@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.clinicledger.R
@@ -34,23 +34,32 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun AnalyticsScreen(
+    /** Data provider for financial analytics */
     viewModel: AnalyticsViewModel,
-    initialVillageId: Long? = null,
+    /** Callback for back navigation */
     onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit,
+    /** Navigation callback for specific patient records */
     onNavigateToPatientDetail: (Long) -> Unit,
+    /** Optional UI customizer */
+    modifier: Modifier = Modifier,
+    /** Optional village ID to filter the initial view */
+    initialVillageId: Long? = null,
 ) {
     val isHindi = LocalIsHindi.current
     
     ClinicScaffold(
-        title = if (isHindi) "क्लीनिक विश्लेषण" else "Clinic Analytics",
-        onBack = onNavigateBack
+        title = if (isHindi) {
+            stringResource(R.string.financial_analytics_title)
+        } else {
+            stringResource(R.string.nav_analytics)
+        },
+        onBack = onNavigateBack,
     ) { paddingValues ->
         AnalyticsContent(
             viewModel = viewModel,
-            initialVillageId = initialVillageId,
             onNavigateToPatientDetail = onNavigateToPatientDetail,
-            modifier = Modifier.padding(paddingValues)
+            modifier = modifier.padding(paddingValues),
+            initialVillageId = initialVillageId,
         )
     }
 }
@@ -61,32 +70,45 @@ fun AnalyticsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsContent(
+    /** The analytics view model */
     viewModel: AnalyticsViewModel,
-    initialVillageId: Long? = null,
+    /** Navigation callback */
     onNavigateToPatientDetail: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    /** Optional UI customizer */
+    modifier: Modifier = Modifier,
+    /** Optional village ID filter */
+    initialVillageId: Long? = null,
 ) {
     val isHindi = LocalIsHindi.current
-    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    var activePatientListTitle by remember { mutableStateOf<String?>(null) }
+    var activePatientListTitleRes by remember { mutableStateOf<Int?>(null) }
+    var activePatientListTitleArgs by remember { mutableStateOf<List<Any>>(emptyList()) }
+    var activePatientListTitleRaw by remember { mutableStateOf<String?>(null) }
     var activePatientList by remember { mutableStateOf<List<Patient>?>(null) }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshAnalytics()
+    val resolvedPatientListTitle = when {
+        activePatientListTitleRes != null -> {
+            stringResource(activePatientListTitleRes!!, *activePatientListTitleArgs.toTypedArray())
+        }
+        else -> activePatientListTitleRaw ?: stringResource(R.string.patient_details_title)
     }
 
     // Handle Deep Link Filtering
     LaunchedEffect(initialVillageId, uiState.villageDuesList) {
-        if (initialVillageId != null && uiState.villageDuesList.isNotEmpty()) {
+        if ((initialVillageId != null) && uiState.villageDuesList.isNotEmpty()) {
             val village = uiState.villageDuesList.find { it.villageId == initialVillageId }
             if (village != null) {
-                activePatientListTitle = context.getString(R.string.analytics_village_outstanding_title, 
-                    if (isHindi) village.nameHindi.ifEmpty { village.name } else village.name)
-                activePatientList = uiState.outstandingPatientsList.filter { it.villageId == initialVillageId }
+                activePatientListTitleRes = R.string.analytics_village_outstanding_title
+                activePatientListTitleArgs = listOf(
+                    if (isHindi) village.nameHindi.ifEmpty { village.name } else village.name,
+                )
+                activePatientListTitleRaw = null
+                activePatientList = uiState.outstandingPatientsList.filter { 
+                    it.villageId == initialVillageId 
+                }
             }
         }
     }
@@ -94,19 +116,33 @@ fun AnalyticsContent(
     // Scroll to top when data is refreshed
     LaunchedEffect(uiState.isLoading) {
         if (!uiState.isLoading) {
-            scrollState.animateScrollToItem(0)
+            scrollState.animateScrollToItem(index = 0)
         }
     }
 
-    var activeTransactionListTitle by remember { mutableStateOf<String?>(null) }
-    var activeTransactionList by remember { mutableStateOf<List<com.clinicledger.ui.analytics.viewmodel.TransactionWithPatient>?>(null) }
+    var activeTransactionListTitleRes by remember { mutableStateOf<Int?>(null) }
+    var activeTransactionListTitleArgs by remember { mutableStateOf<List<Any>>(emptyList()) }
+    var activeTransactionListTitleRaw by remember { mutableStateOf<String?>(null) }
+    var activeTransactionList by remember { 
+        mutableStateOf<List<com.clinicledger.ui.analytics.viewmodel.TransactionWithPatient>?>(null) 
+    }
+
+    val resolvedTransactionListTitle = when {
+        activeTransactionListTitleRes != null -> {
+            stringResource(
+                activeTransactionListTitleRes!!, 
+                *activeTransactionListTitleArgs.toTypedArray(),
+            )
+        }
+        else -> activeTransactionListTitleRaw ?: stringResource(R.string.journal_title)
+    }
 
     activePatientList?.let { patients ->
         PatientListDialog(
-            title = activePatientListTitle ?: "Details",
+            title = resolvedPatientListTitle,
             patients = patients,
             isHindi = isHindi,
-            onDismiss = { activePatientList = null }
+            onDismiss = { activePatientList = null },
         ) { patientId ->
             activePatientList = null
             onNavigateToPatientDetail(patientId)
@@ -115,7 +151,7 @@ fun AnalyticsContent(
 
     activeTransactionList?.let { transactions ->
         TransactionListDialog(
-            title = activeTransactionListTitle ?: "Transactions",
+            title = resolvedTransactionListTitle,
             transactions = transactions,
             isHindi = isHindi,
             onDismiss = { activeTransactionList = null },
@@ -134,75 +170,114 @@ fun AnalyticsContent(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            contentPadding = PaddingValues(bottom = 100.dp),
         ) {
+            item(key = "patient_count_summary") {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.People, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.primary, 
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.patient_total_count_format, 
+                                uiState.totalPatients,
+                            ),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+
             item(key = "cards_section", contentType = "summary") {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         AnalyticsCard(
-                            title = if (isHindi) "कुल बकाया" else "Total Outstanding",
+                            title = stringResource(R.string.total_due_label),
                             value = LocaleManager.formatCurrency(uiState.totalOutstandingDues),
                             icon = Icons.Rounded.AccountBalanceWallet,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activePatientListTitle = context.getString(R.string.analytics_total_outstanding_patients)
+                                activePatientListTitleRes = R.string.analytics_total_outstanding_patients
+                                activePatientListTitleArgs = emptyList()
+                                activePatientListTitleRaw = null
                                 activePatientList = uiState.outstandingPatientsList
-                            }
+                            },
                         )
 
                         AnalyticsCard(
-                            title = if (isHindi) "आज का संग्रह" else "Collected Today",
+                            title = stringResource(R.string.collected_today_label),
                             value = LocaleManager.formatCurrency(uiState.todayCollected),
                             icon = Icons.Rounded.Payments,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activeTransactionListTitle = context.getString(R.string.analytics_collected_today)
+                                activeTransactionListTitleRes = R.string.analytics_collected_today
+                                activeTransactionListTitleArgs = emptyList()
+                                activeTransactionListTitleRaw = null
                                 activeTransactionList = uiState.todayCollectedList
-                            }
+                            },
                         )
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         AnalyticsCard(
-                            title = if (isHindi) "इस महीने का संग्रह" else "Total Monthly Collection",
+                            title = stringResource(R.string.analytics_monthly_collection),
                             value = LocaleManager.formatCurrency(uiState.thisMonthCollected),
                             icon = Icons.Rounded.CalendarMonth,
                             color = Color(0xFF4CAF50),
                             modifier = Modifier.weight(1f),
-                            onClick = {
-                                activeTransactionListTitle = context.getString(R.string.analytics_monthly_collection)
-                                scope.launch {
-                                    val monthStart = DateTimeUtils.getStartOfMonth()
-                                    val monthTxs = viewModel.getTransactionsSince(monthStart).filter { it.type == "payment" }
-                                    activeTransactionList = monthTxs
+                        ) {
+                            activeTransactionListTitleRes = R.string.analytics_monthly_collection
+                            activeTransactionListTitleArgs = emptyList()
+                            activeTransactionListTitleRaw = null
+                            scope.launch {
+                                val monthStart = DateTimeUtils.getStartOfMonth()
+                                val monthTxs = viewModel.getTransactionsSince(monthStart).filter { 
+                                    it.type == "payment" 
                                 }
+                                activeTransactionList = monthTxs
                             }
-                        )
+                        }
 
                         val recoveryRateText = remember(uiState.recoveryRate) {
                             String.format(java.util.Locale.US, "%.1f%%", uiState.recoveryRate)
                         }
                         AnalyticsCard(
-                            title = if (isHindi) "वसूली दर" else "Recovery Rate (Month)",
+                            title = stringResource(R.string.monthly_ratio),
                             value = recoveryRateText,
                             icon = Icons.AutoMirrored.Rounded.TrendingUp,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                activePatientListTitle = context.getString(R.string.analytics_all_debtors)
+                                activePatientListTitleRes = R.string.analytics_all_debtors
+                                activePatientListTitleArgs = emptyList()
+                                activePatientListTitleRaw = null
                                 activePatientList = uiState.outstandingPatientsList
-                            }
+                            },
                         )
                     }
                 }
@@ -210,19 +285,18 @@ fun AnalyticsContent(
 
             item(key = "village_breakdown_title") {
                 Text(
-                    text = if (isHindi) "गाँव अनुसार बकाया विवरण" else "Dues Breakdown by Village",
+                    text = stringResource(R.string.dues_breakdown_by_village),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
             if (uiState.villageDuesList.isEmpty()) {
                 item(key = "empty_villages") {
                     ClinicEmptyState(
-                        message = "No outstanding dues recorded.",
-                        messageHindi = "कोई बकाया उपलब्ध नहीं है।"
+                        message = stringResource(R.string.no_outstanding_balances),
                     )
                 }
             } else {
@@ -233,57 +307,74 @@ fun AnalyticsContent(
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            val maxDues = uiState.villageDuesList.maxOfOrNull { it.totalDues } ?: 1.0
+                        Column(
+                            modifier = Modifier.padding(16.dp), 
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            val maxDues = uiState.villageDuesList.maxOfOrNull { it.totalDues }?.toDouble() ?: 1.0
                             uiState.villageDuesList.forEach { item ->
-                                val progress = (item.totalDues / maxDues).toFloat().coerceIn(0f, 1f)
+                                val progress = (item.totalDues.toDouble() / maxDues).toFloat().coerceIn(0f, 1f)
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            val vName = if (isHindi) item.nameHindi.ifEmpty { item.name } else item.name
-                                            activePatientListTitle = context.getString(R.string.analytics_village_outstanding_title, vName)
-                                            activePatientList = uiState.outstandingPatientsList.filter { it.villageId == item.villageId }
+                                            val vName = if (isHindi) {
+                                                item.nameHindi.ifEmpty { item.name }
+                                            } else {
+                                                item.name
+                                            }
+                                            activePatientListTitleRes = R.string.analytics_village_outstanding_title
+                                            activePatientListTitleArgs = listOf(vName)
+                                            activePatientListTitleRaw = null
+                                            activePatientList = uiState.outstandingPatientsList.filter { 
+                                                it.villageId == item.villageId 
+                                            }
                                         }
-                                        .padding(vertical = 4.dp)
+                                        .padding(vertical = 4.dp),
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
-                                            text = if (isHindi) item.nameHindi.ifEmpty { item.name } else item.name,
+                                            text = if (isHindi) {
+                                                item.nameHindi.ifEmpty { item.name }
+                                            } else {
+                                                item.name
+                                            },
                                             style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
                                         )
                                         Text(
                                             text = LocaleManager.formatCurrency(item.totalDues),
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.error
+                                            color = MaterialTheme.colorScheme.error,
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
-                                            text = if (isHindi) "${item.patientCount} मरीज" else "${item.patientCount} Patients",
+                                            text = stringResource(R.string.patients_count, item.patientCount),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         val percentageText = remember(item.totalDues, uiState.totalOutstandingDues) {
-                                            String.format(java.util.Locale.US, "%.1f%%", if (uiState.totalOutstandingDues > 0) (item.totalDues / uiState.totalOutstandingDues) * 100.0 else 0.0)
+                                            val total = uiState.totalOutstandingDues
+                                            val ratio = if (total > 0) (item.totalDues.toDouble() / total) * 100.0 else 0.0
+                                            String.format(java.util.Locale.US, "%.1f%%", ratio)
                                         }
                                         Text(
                                             text = percentageText,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -299,7 +390,7 @@ fun AnalyticsContent(
                                             .height(8.dp)
                                             .clip(RoundedCornerShape(4.dp)),
                                         color = barColor,
-                                        trackColor = barColor.copy(alpha = 0.15f)
+                                        trackColor = barColor.copy(alpha = 0.15f),
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                 }
@@ -311,11 +402,11 @@ fun AnalyticsContent(
 
             item(key = "aging_title") {
                 Text(
-                    text = if (isHindi) "बकाया समय सीमा (निष्क्रिय खाते)" else "Overdue Dues Aging (Inactive Accounts)",
+                    text = stringResource(R.string.overdue_dues_period),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
@@ -324,34 +415,40 @@ fun AnalyticsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     DefaulterCard(
-                        label = if (isHindi) "> 30 दिन" else "> 30 Days",
+                        label = stringResource(R.string.more_than_30_days),
                         count = uiState.defaulters30Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = context.getString(R.string.analytics_overdue_30)
+                            activePatientListTitleRes = R.string.analytics_overdue_30
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.defaulters30List
-                        }
+                        },
                     )
                     DefaulterCard(
-                        label = if (isHindi) "> 90 दिन" else "> 90 Days",
+                        label = stringResource(R.string.more_than_90_days),
                         count = uiState.defaulters90Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = context.getString(R.string.analytics_overdue_90)
+                            activePatientListTitleRes = R.string.analytics_overdue_90
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.defaulters90List
-                        }
+                        },
                     )
                     DefaulterCard(
-                        label = if (isHindi) "> 180 दिन" else "> 180 Days",
+                        label = stringResource(R.string.more_than_180_days),
                         count = uiState.defaulters180Days,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            activePatientListTitle = context.getString(R.string.analytics_overdue_180)
+                            activePatientListTitleRes = R.string.analytics_overdue_180
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.defaulters180List
-                        }
+                        },
                     )
                 }
             }
@@ -362,28 +459,32 @@ fun AnalyticsContent(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable {
-                            activePatientListTitle = if (isHindi) "कुल बकायादार मरीज" else "Total Outstanding Patients"
+                            activePatientListTitleRes = R.string.analytics_all_debtors
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.outstandingPatientsList
                         },
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = if (isHindi) "शीर्ष ५ बकायादार मरीज" else "Top 5 Outstanding Debtors",
+                        text = stringResource(R.string.top_dues_patients),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = if (isHindi) "सभी देखें" else "View All",
+                        text = stringResource(R.string.see_all),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            activePatientListTitle = context.getString(R.string.analytics_total_outstanding_patients)
+                            activePatientListTitleRes = R.string.analytics_total_outstanding_patients
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.outstandingPatientsList
-                        }
+                        },
                     )
                 }
             }
@@ -391,21 +492,20 @@ fun AnalyticsContent(
             if (uiState.topPatientsWithDues.isEmpty()) {
                 item(key = "empty_debtors") {
                     ClinicEmptyState(
-                        message = "No patients with outstanding balance found.",
-                        messageHindi = "कोई भी बकाया मरीज नहीं मिला।"
+                        message = stringResource(R.string.no_outstanding_balances),
                     )
                 }
             } else {
                 itemsIndexed(
-                    items = uiState.topPatientsWithDues.take(5),
+                    items = uiState.topPatientsWithDues.take(n = 5),
                     key = { _, p -> "debtor_${p.id}" },
-                    contentType = { _, _ -> "patient" }
+                    contentType = { _, _ -> "patient" },
                 ) { index, patient ->
                     PatientListItem(
                         patient = patient,
                         index = index,
                         isHindi = isHindi,
-                        onClick = { onNavigateToPatientDetail(patient.id) }
+                        onClick = { onNavigateToPatientDetail(patient.id) },
                     )
                 }
             }
@@ -416,24 +516,26 @@ fun AnalyticsContent(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable {
-                            activePatientListTitle = if (isHindi) "६०+ दिनों से नहीं आए मरीज" else "Patients Not Visited in 60+ Days"
+                            activePatientListTitleRes = R.string.analytics_non_visitors_60
+                            activePatientListTitleArgs = emptyList()
+                            activePatientListTitleRaw = null
                             activePatientList = uiState.inactivePatients60Days
                         },
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = if (isHindi) "६०+ दिनों से नहीं आए मरीज (Chronic Follow-up)" else "Patients Not Visited in 60+ Days",
+                        text = stringResource(R.string.analytics_non_visitors_60),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = if (isHindi) "सभी देखें" else "View All",
+                        text = stringResource(R.string.see_all),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -441,21 +543,20 @@ fun AnalyticsContent(
             if (uiState.inactivePatients60Days.isEmpty()) {
                 item(key = "empty_inactive") {
                     ClinicEmptyState(
-                        message = "All patients have visited recently.",
-                        messageHindi = "कोई भी निष्क्रिय मरीज नहीं मिला।"
+                        message = stringResource(R.string.everyone_settled_msg),
                     )
                 }
             } else {
                 itemsIndexed(
                     items = uiState.inactivePatients60Days,
                     key = { _, p -> "inactive_${p.id}" },
-                    contentType = { _, _ -> "patient" }
+                    contentType = { _, _ -> "patient" },
                 ) { index, patient ->
                     PatientListItem(
                         patient = patient,
                         index = index,
                         isHindi = isHindi,
-                        onClick = { onNavigateToPatientDetail(patient.id) }
+                        onClick = { onNavigateToPatientDetail(patient.id) },
                     )
                 }
             }

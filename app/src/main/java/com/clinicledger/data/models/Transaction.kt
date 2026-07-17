@@ -1,69 +1,64 @@
 package com.clinicledger.data.models
 
-import androidx.compose.runtime.Immutable
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Ignore
-import androidx.room.Index
-import androidx.room.PrimaryKey
-import androidx.core.graphics.toColorInt
+import androidx.room.*
 import java.util.Date
 
 /**
- * Room entity representing a financial transaction for a patient.
+ * Data entity for clinical transactions (Medicine charges or Payments).
  */
 @Entity(
-    tableName = "transactions",
+    tableName = Transaction.TABLE_NAME,
     foreignKeys = [
         ForeignKey(
             entity = Patient::class,
             parentColumns = ["id"],
             childColumns = ["patient_id"],
             onDelete = ForeignKey.CASCADE,
-        )
+        ),
     ],
-    indices = [Index("patient_id")]
 )
-@Immutable
 data class Transaction(
+    /** Unique ID */
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    /** Linked patient ID */
     @ColumnInfo(name = "patient_id")
     val patientId: Long,
 
-    // Transaction type: "medicine" (debit), "payment" (credit), or "adjustment" (debit)
+    /** Type tag: medicine, payment, adjustment */
     @ColumnInfo(name = "type")
     val type: String,
 
-    // Positive monetary amount; sign is determined by the type field
+    /** Amount in Paise (e.g. 1000 = Rs 10.00) */
     @ColumnInfo(name = "amount")
-    val amount: Double,
+    val amount: Long,
 
+    /** Narrative notes */
     @ColumnInfo(name = "notes", defaultValue = "")
     val notes: String = "",
 
+    /** Persistence timestamp */
     @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
     val createdAt: Date = Date(),
 
+    /** Last update timestamp */
     @ColumnInfo(name = "updated_at", defaultValue = "CURRENT_TIMESTAMP")
-    var updatedAt: Date = Date()
+    var updatedAt: Date = Date(),
 ) {
-    // Populated at query time via JOIN; not persisted in the transactions table
+    /** Resolved patient object (Non-DB field) */
     @Ignore
     var patient: Patient? = null
 
-    /** Background color associated with the transaction type for visual distinction */
-    val typeColor: Int
-        get() = when (type) {
-            "medicine" -> "#FFCDD2".toColorInt()
-            "payment" -> "#C8E6C9".toColorInt()
-            "adjustment" -> "#BBDEFB".toColorInt()
-            else -> "#EEEEEE".toColorInt()
-        }
-
-    /** True if this transaction increases the patient's balance (medicine or adjustment) */
+    /** 
+     * Computed property to determine if the transaction is a debit (medicine or adjustment).
+     */
+    @get:Ignore
     val isDebit: Boolean
-        get() = (type == "medicine") || (type == "adjustment")
+        get() = type == "medicine" || type == "adjustment"
+
+    companion object {
+        /** Database table name */
+        const val TABLE_NAME = "transactions"
+    }
 }
