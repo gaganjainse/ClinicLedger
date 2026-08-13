@@ -144,7 +144,8 @@ object VoiceIntentParser {
     private fun isPayment(text: String): Boolean {
         val keywords = listOf(
             "diye", "diya", "jama", "de gaya", "de diye", "paid", "payment",
-            "paisa diya", "paisa diye", "दिये", "दिए", "जमा", "दे गए", "पैसा दिया",
+            "paisa diya", "paisa diye", "rokda", "rokda diya",
+            "दिये", "दिए", "जमा", "दे गए", "पैसा दिया",
             "jama kar diye", "rupees", "rupay", "rupaya",
         )
         return keywords.any { containsWordOrPhrase(text, it) }
@@ -256,11 +257,19 @@ object VoiceIntentParser {
             " ko ", " ne ", " ka ", " se ", " ki ", " ke ",
             " kitna ", " baki ", " hisaab ", " khata ", " balance ", " due ", " hai",
             " dawa ", " dawai ", " dava ", " tablet ", " medicine ", " jama ", " paid ", " payment ",
+            " paisa ", " rokda ",
             " को ", " ने ", " का ", " की ", " के ", " से ", " कितना ", " बकाया ", " हिसाब ", " खाता ", " दवा ", " जमा ",
             " है", " का", " की", " के", " में", " में ", " aur ", " and ", " unhone ", " unhone",
             " diye ", " diya ", " diye", " diya", " kiye ", " kiye",
         )
         fillers.forEach { cleanedText = cleanedText.replace(it, " ") }
+
+        // Fillers above are space-padded (" dawa "), so a filler at the very
+        // end (or start) of the string survives ("...200 dawa" → "Ramesh Dawa").
+        // Re-apply each filler word with explicit start/end anchors.
+        fillers.map { it.trim() }.filter { it.isNotBlank() }.forEach { f ->
+            cleanedText = cleanedText.replace(Regex("(?:^|\\s)${Regex.escape(f)}(?:$|\\s)"), " ")
+        }
 
         // Remove numeric values
         cleanedText = cleanedText.replace("\\d+".toRegex(), " ")
@@ -310,7 +319,7 @@ object VoiceIntentParser {
 
     internal fun findNumberGroups(cleanText: String): List<NumberGroup> {
         val result = mutableListOf<NumberGroup>()
-        
+
         // 1. Literal numbers
         val numberRegex = "\\d+".toRegex()
         val matches = numberRegex.findAll(cleanText)
@@ -318,17 +327,37 @@ object VoiceIntentParser {
             result.add(NumberGroup(m.value.toDouble(), m.range.first, m.range.last))
         }
 
-        // 2. Hindi number parser
-        // We only add if it's not already picked up by literal numbers or if it's a word-based number
-        val convertedValue = HindiNumberConverter.parseHindiNumbers(cleanText)
-        if (convertedValue > 0) {
-            // HindiNumberConverter returns standard numeric value (e.g. 300 for "teen sau")
-            if (result.none { it.value == convertedValue }) {
-                result.add(NumberGroup(convertedValue, 0, cleanText.length))
+        // 2. Hindi number phrases — each phrase becomes its own group at its
+        // own position. The converter is a single-phrase parser; feeding it a
+        // whole sentence breaks on multi-amount input ("teen sau ... sau" → the
+        // second 'sau' re-multiplies the first group: 300*100 = 30000).
+        for (m in HINDI_NUMBER_PHRASE_REGEX.findAll(cleanText)) {
+            val value = HindiNumberConverter.parseHindiNumbers(m.value)
+            if (value > 0 && result.none { it.value == value }) {
+                result.add(NumberGroup(value, m.range.first, m.range.last))
             }
         }
 
-        return result
+        return result.sortedBy { it.startIndex }
+    }
+
+    private val hindiNumberWords = listOf(
+        "एक", "ek", "eak", "दो", "do", "dho", "तीन", "teen", "tin", "चार", "char", "caar",
+        "पाँच", "paanch", "panch", "छह", "chhah", "che", "chhe", "सात", "saat", "sat",
+        "आठ", "aath", "ath", "नौ", "nau", "दस", "das", "dus", "बीस", "bees", "bis",
+        "तीस", "tees", "tis", "चालीस", "chalis", "पचास", "pachas", "साठ", "saath",
+        "सत्तर", "sattar", "अस्सी", "assi", "नब्बे", "nabbe", "सौ", "sau", "sou",
+        "हज़ार", "hazaar", "hazar", "hajaar", "लाख", "lakh", "laakh", "साढ़े", "sade", "saade",
+        "पौने", "paune", "puna", "डेढ़", "dedh", "derh", "ढाई", "dhai", "dhaai",
+    )
+
+    private val HINDI_NUMBER_PHRASE_REGEX: Regex by lazy {
+        val alt = hindiNumberWords.joinToString("|") { Regex.escape(it) }
+        // Space-anchored (Devanagari is not \w in default Java regex mode):
+        // one or more consecutive number words = one phrase. The alternation
+        // must be wrapped in its own group — Regex.escape emits \Q..\E quoting,
+        // and `\s+` before a bare alternation would bind to the first branch only.
+        Regex("(?:^|\\s)(?:$alt)(?:\\s+(?:$alt))*(?=$|\\s)")
     }
 
     private fun classifyGroups(
