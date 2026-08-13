@@ -20,3 +20,4 @@ local.properties
 
 # gradle-wrapper.jar is a committed bootstrap (official Gradle guidance)
 !gradle/wrapper/gradle-wrapper.jar
+.artifacts/
