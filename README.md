@@ -80,3 +80,9 @@ app/src/main/java/com/clinicledger/
 
 ## 🌐 Industrial-Grade Reliability
 Clinic Ledger OS is designed to be **ironclad**. With no deletions allowed, every adjustment is an entry in a medical audit trail. The **System Guardian** runs continuous health checks on data integrity and semantic link consistency, ensuring the ledger remains a source of truth for the clinic.
+
+---
+
+## 📄 License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE).
