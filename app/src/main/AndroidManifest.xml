@@ -30,8 +30,8 @@
         Application configuration:
         - Uses a custom Application class (ClinicLedgerApp) for any
           app-level initialisation (e.g. dependency injection, analytics).
-        - allowBackup / fullBackupContent enabled so patient data is preserved
-          during device-to-device migration.
+        - allowBackup=false: patient data (PHI) must NOT be synced to cloud
+          backups. Local migration uses the in-app export instead.
         - supportsRtl="true" enables right-to-left layout mirroring for
           Hindi and other RTL languages.
         - usesCleartextTraffic="true" is required if the app ever communicates
@@ -41,7 +41,7 @@
     -->
     <application
         android:name=".ClinicLedgerApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
