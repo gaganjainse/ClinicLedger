@@ -1,91 +1,47 @@
-# Clinic Ledger OS (क्लिनिक लेजर) - v2.0 Ultra-Performance
+# 🏥 Clinic Ledger OS (क्लिनिक लेजर)
 
-An offline-first, voice-assisted clinic ledger and patient memory database designed for clinical practitioners in India. **v2.0** introduces an **Ultra-Performance "Body" (120FPS)** and a **Native Agentic Diagnostic Hub**, transforming the app from a simple ledger into a robust, high-fidelity clinical operating system.
+> **An offline-first, voice-assisted clinic ledger and patient memory database**
+> for clinical practitioners in India. v2.0 adds an Ultra-Performance "Body"
+> (120FPS) and a Native Agentic Diagnostic Hub.
 
----
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin) ![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose) ![License](https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge) ![CI](https://github.com/gaganjainse/ClinicLedger/actions/workflows/android-ci.yml.yml/badge.svg)
 
-## 🚀 v2.0 Ultra-Performance Upgrades
-
-### 1. The "120FPS Body"
-- **Aggressive Memoization**: Full utilization of `@Immutable` and `@Stable` modeling to hit 8ms frame targets for butter-smooth high-refresh-rate scrolling.
-- **Zero-Lag Lists**: Re-engineered all major lists (Analytics, Search, Transactions) with advanced `LazyColumn` optimizations (`key` and `contentType`).
-- **Standardized Architecture**: Renamed and reorganized all core hubs to follow professional Android industry standards (e.g., `MainDashboardScreen`, `LedgerSearchHub`).
-
-### 2. Native Architectural Diagnostic Hub
-- **Internal Maintenance Tool**: Shifted the `flow.jsx` vision into a functional, native Compose component with high-fidelity `Canvas` visuals.
-- **Real-Time Monitoring**: Integrated live database metrics, NLU intent confidence logs, and a real-time log streamer from the `SystemGuardian`.
-- **Integrated Testing**: Connected a comprehensive suite of **100+ JUnit 6 tests** to the diagnostic dashboard.
-
-### 3. Agentic Brain & Personalization
-- **Persistent Tuning**: Voice speed and Active Learning settings are now saved locally, persisting across app restarts.
-- **Habit-Aware Pacing**: The Assistant automatically adjusts its response speed based on the doctor's learned speech patterns and hurried tone.
-- **State-Preserving Navigation**: Fixed the language-switch bug; the app now perfectly preserves your current screen and data state during transitions.
+- **License:** GPL-3.0-or-later
+- **Owner:** Gagan Jain ([@gaganjainse](https://github.com/gaganjainse))
+- **Stack:** Kotlin · Jetpack Compose · Room · Android SDK 37+ · AGP 9.3.0
 
 ---
 
-## 🎨 Visual Identity & Hubs
+## v2.0 Ultra-Performance
+
+- **120FPS Body** — `@Immutable`/`@Stable` modeling and `LazyColumn` optimizations for high-refresh-rate scrolling.
+- **Native Architectural Diagnostic Hub** — live database metrics, NLU intent confidence logs, and a real-time log streamer from the SystemGuardian.
+- **Agentic Brain & Personalization** — persistent voice speed + Active Learning, habit-aware pacing, state-preserving navigation.
+
+## Hubs
 
 | Hub | Description |
 | :--- | :--- |
-| **Main Dashboard** | The central command center with high-performance search and morning briefings. |
+| **Main Dashboard** | Central command center with high-performance search and morning briefings. |
 | **Ledger Search Hub** | Ultra-fast discovery with fuzzy matching for aliases and villages. |
-| **Analytics Dashboard** | Deep financial insights, debtor aging buckets, and village-level metrics. |
-| **Diagnostic Hub** | Full architectural transparency with live node status and log streams. |
+| **Analytics Dashboard** | Financial insights, debtor aging buckets, village-level metrics. |
+| **Diagnostic Hub** | Architectural transparency with live node status and log streams. |
 
----
+## Quick start
 
-## ⚡ Setup, Building, and Testing
-
-### Prerequisites
-- **Android SDK 37+** (Targeting latest Android APIs)
-- **AGP 9.3.0**
-- **JDK 26**
-- **JUnit 6**
-
-### Local Build
 ```bash
-./gradlew :app:assembleDebug
+./gradlew :app:assembleDebug     # build
+./gradlew :app:testDebugUnitTest # test (100+ JUnit tests)
 ```
 
-### Comprehensive Testing (100+ Tests)
-```bash
-./gradlew test
-```
+## Status
 
----
+CI green. Security: [SECURITY.md](SECURITY.md).
 
-## 📂 Project Package Structure (Refactored)
+## Documentation index
 
-```
-app/src/main/java/com/clinicledger/
-│
-├── data/
-│   ├── local/              # Room Database v5.0 (SQLite Engine)
-│   ├── models/             # @Immutable Data Models
-│   └── repository/         # Cached Repositories (Village, Patient, Transaction)
-│
-├── service/                # ClinicalActionToolbox, ContextualBrain, SystemGuardian
-│
-├── ui/
-│   ├── util/               # LocaleManager, FeedbackProvider, HabitMapper
-│   └── compose/            # Standardized Hubs & Screens
-│       ├── MainDashboardScreen.kt   # Root Navigation Hub
-│       ├── LedgerSearchHub.kt       # Search & Listing Engine
-│       ├── PatientRegistrationScreen.kt # Ergonomic Forms
-│       ├── ArchitecturalDiagnosticHub.kt # Native Maintenance Tool
-│       └── ...
-```
+- **Compiled reading:** [shesh-docs](https://github.com/gaganjainse/shesh-docs)
 
----
-
-## 🌐 Industrial-Grade Reliability
-Clinic Ledger OS is designed to be **ironclad**. With no deletions allowed, every adjustment is an entry in a medical audit trail. The **System Guardian** runs continuous health checks on data integrity and semantic link consistency, ensuring the ledger remains a source of truth for the clinic.
-
----
-
-## 📄 License
+## License
 
 GPL-3.0-or-later — see [LICENSE](LICENSE).
-## 📚 Docs
-
-Fleet-wide reading compilation: [shesh-docs](https://github.com/gaganjainse/shesh-docs).
